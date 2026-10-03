@@ -401,3 +401,29 @@ dialog#modal:has(#scrap-sale){width:min(920px,96vw)}
  .scope-task .seg{display:flex;width:100%}.scope-task .seg button{flex:1;padding:8px 4px}
  .scope-task .scope-who{width:100%}
 }
+/* Quote / PO line items: item description with W x L inches, area in sq ft, gauge without the mm column */
+#recordform.priced #lines .lineitem{grid-template-columns:22px minmax(300px,1fr) 78px 104px 74px 60px 64px 90px 54px 92px 78px}
+#recordform.priced #lines .lineitem.no-discount{grid-template-columns:22px minmax(300px,1fr) 78px 104px 74px 60px 64px 90px 92px 78px}
+.linedesc-cell{display:flex;gap:6px;align-items:center;min-width:0}
+.linedesc-cell .linedesc{flex:1;min-width:0}
+.linesize{display:flex;align-items:center;gap:3px;flex:none}
+.linesize input{width:58px;text-align:right}
+.linesize i{font-style:normal;font-size:12px;color:#7b8a85}
+.linearea{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:#33484a;align-self:center}
+@media(max-width:760px){
+ #recordform.priced #lines .lineitem,#recordform.priced #lines .lineitem.no-discount{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"desc desc desc" "lmat lgau larea" "mat gau area" "lqty lunit lrate" "qty unit rate" "ldisc lamt ." "disc amt act" "note note note"}
+ #recordform.priced #lines .lineitem.no-discount{grid-template-areas:"desc desc desc" "lmat lgau larea" "mat gau area" "lqty lunit lrate" "qty unit rate" "lamt . ." "amt act act" "note note note"}
+ #recordform.priced #lines .linedesc-cell{grid-area:desc;flex-wrap:wrap}
+ #recordform.priced #lines .linedesc-cell .linedesc{flex-basis:100%}
+ #recordform.priced #lines .lineitem input,#recordform.priced #lines .lineitem select{min-width:0;width:100%}
+ #recordform.priced #lines .linesize input{width:70px}
+ #recordform.priced #lines .ml-area{grid-area:larea}#recordform.priced #lines .linearea{grid-area:area;text-align:left}
+}
+/* Line items: Qty after the description, Area ft² after Gauge (amount = area x rate) */
+#recordform.priced #lines .lineitem{grid-template-columns:22px minmax(300px,1fr) 60px 104px 74px 78px 64px 90px 54px 92px 78px}
+#recordform.priced #lines .lineitem.no-discount{grid-template-columns:22px minmax(300px,1fr) 60px 104px 74px 78px 64px 90px 92px 78px}
+#recordform.priced #lines .linearea{font-weight:650}
+@media(max-width:760px){
+ #recordform.priced #lines .lineitem,#recordform.priced #lines .lineitem.no-discount{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"desc desc desc" "lqty lmat lgau" "qty mat gau" "larea lunit lrate" "area unit rate" "ldisc lamt ." "disc amt act" "note note note"}
+ #recordform.priced #lines .lineitem.no-discount{grid-template-areas:"desc desc desc" "lqty lmat lgau" "qty mat gau" "larea lunit lrate" "area unit rate" "lamt . ." "amt act act" "note note note"}
+}

@@ -1,5 +1,6 @@
 import {materials,matchGauge} from './gauge.mjs';
-import {lineCents,lineDiscount} from './invoice-math.mjs';
+import {sizeText} from './size.mjs?v=1';
+import {lineCents,lineDiscount,billedQty} from './invoice-math.mjs?v=area-1';
 import {defaultCompany,amountInWords,formatIBAN,defaultBankAccount} from './documents.mjs?v=gr-1';
 import {drawStamp} from './stamp.mjs?v=logo-2';
 // Shared PDF generator for quotations, invoices and purchase orders.
@@ -22,7 +23,7 @@ export async function createQuotePDF(quote, logoBytes, PDFLib, context={}) {
   for(const l of quote.lines){
     if(!l.description?.trim()||!Number.isFinite(l.quantity)||l.quantity<=0||!Number.isFinite(l.rate)||l.rate<0)throw Error('Check item descriptions, quantities and unit prices.');
     if(l.discount!=null&&l.discount!==''&&(!Number.isFinite(Number(l.discount))||Number(l.discount)<0||Number(l.discount)>100))throw Error('Enter a line discount between 0 and 100%.');
-    cents+=lineCents(l);gross+=Math.round(l.quantity*l.rate*100);
+    cents+=lineCents(l);gross+=Math.round(billedQty(l)*l.rate*100);
   }
   const taxCents=Math.round(cents*quote.tax/100),total=(cents+taxCents)/100;
   if(!Number.isFinite(total)||total>1e9)throw Error('The total must be below PKR 1 billion.');
@@ -51,7 +52,7 @@ export async function createQuotePDF(quote, logoBytes, PDFLib, context={}) {
   function ensure(height){if(y-height<80)newPage()}
   function block(value,width,size=10,font=regular,color=ink,x=42,gap=4){for(const row of wrap(value,width,size,font)){ensure(size+gap);text(row,x,y,size,font,color);y-=size+gap}}
   const label=(value,x,yy)=>text(value,x,yy,8,bold,muted);
-  const materialText=l=>{if(!l.thickness_mm)return '';const g=matchGauge(l.material,l.thickness_mm);return [materials[l.material],`${Number(l.thickness_mm)} mm${g?` (${g.gauge} gauge)`:''}`].filter(Boolean).join(' · ')};
+  const materialText=l=>{if(!l.thickness_mm)return '';const g=matchGauge(l.material,l.thickness_mm);return [materials[l.material],g?`${g.gauge} ga`:`${Number(l.thickness_mm)} mm`].filter(Boolean).join(' · ')};
 
   // Letterhead: logo and company details on the left; document title and reference box on the right.
   page=pdf.addPage([595.28,841.89]);
@@ -83,17 +84,17 @@ export async function createQuotePDF(quote, logoBytes, PDFLib, context={}) {
   y=Math.min(leftEnd,y)-12;
 
   // Items.
-  function tableHeader(){ensure(40);page.drawRectangle({x:42,y:y-9,width:511,height:26,color:blue});text('#',50,y,8.5,bold,white);text('DESCRIPTION / MATERIAL & THICKNESS',72,y,8.5,bold,white);right('QTY',350,y,8.5,bold,white);right('RATE (PKR)',450,y,8.5,bold,white);right('AMOUNT (PKR)',545,y,8.5,bold,white);y-=29;}
+  function tableHeader(){ensure(40);page.drawRectangle({x:42,y:y-9,width:511,height:26,color:blue});text('#',50,y,8.5,bold,white);text('ITEM DESCRIPTION / SIZE & MATERIAL',72,y,8.5,bold,white);right('QTY',330,y,8.5,bold,white);right('AREA FT²',400,y,8.5,bold,white);right('RATE (PKR)',470,y,8.5,bold,white);right('AMOUNT (PKR)',545,y,8.5,bold,white);y-=29;}
   tableHeader();
   quote.lines.forEach((item,index)=>{
-    const desc=wrap(item.description,238,10), detail=wrap([materialText(item),lineDiscount(item)?`Less ${lineDiscount(item)}% discount`:''].filter(Boolean).join('\n'),238,8.5);
+    const desc=wrap(item.description,220,10), detail=wrap([sizeText(item),materialText(item),lineDiscount(item)?`Less ${lineDiscount(item)}% discount`:''].filter(Boolean).join('\n'),220,8.5);
     const height=desc.length*14+(detail[0]?detail.length*12:0)+8;
     if(y-height<80){newPage();tableHeader()}
     if(index%2)page.drawRectangle({x:42,y:y-height+10,width:511,height:height,color:rgb(.98,.985,.99)});
     text(String(index+1),50,y,10,regular,muted);
     desc.forEach((s,i)=>text(s,72,y-i*14));
     detail.filter(Boolean).forEach((s,i)=>text(s,72,y-desc.length*14-i*12,8.5,regular,muted));
-    right(`${item.quantity}${item.unit?' '+item.unit:''}`,350,y);right(amount(item.rate),450,y);right(amount(lineCents(item)/100),545,y);
+    const byArea=item.pricing==='area'&&Number(item.area_sqft)>0;right(`${item.quantity}${item.unit?' '+item.unit:''}`,330,y);right(byArea?Number(item.area_sqft).toFixed(2):'-',400,y,10,regular,byArea?ink:muted);right(amount(item.rate),470,y);if(byArea)right('per ft²',470,y-12,7.5,regular,muted);right(amount(lineCents(item)/100),545,y);
     y-=height;
   });
   rule(y+10);

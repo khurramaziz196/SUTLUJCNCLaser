@@ -13,10 +13,12 @@ export function validatePayment(amount,due) {
 }
 // Line totals in paise. A line may carry an optional percentage discount (0-100).
 export const lineDiscount = line => { const d = Number(line?.discount); return Number.isFinite(d) && d > 0 ? d : 0; };
-export const lineCents = line => Math.round(Number(line.quantity) * Number(line.rate) * (100 - lineDiscount(line)));
+// Lines priced by area (W x L given) bill the total square feet; other lines bill the quantity.
+export const billedQty = line => line?.pricing === 'area' && Number(line.area_sqft) > 0 ? Number(line.area_sqft) : Number(line.quantity);
+export const lineCents = line => Math.round(billedQty(line) * Number(line.rate) * (100 - lineDiscount(line)));
 export function documentTotals(lines, tax) {
  let gross = 0, net = 0;
- for (const l of lines) { gross += Math.round(Number(l.quantity) * Number(l.rate) * 100); net += lineCents(l); }
+ for (const l of lines) { gross += Math.round(billedQty(l) * Number(l.rate) * 100); net += lineCents(l); }
  const taxCents = Math.round(net * Number(tax || 0) / 100);
  return {gross: gross / 100, discount: (gross - net) / 100, net: net / 100, tax: taxCents / 100, total: (net + taxCents) / 100};
 }

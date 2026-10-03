@@ -1,5 +1,5 @@
 import {createQuotePDF} from './quote-pdf.mjs?v=logo-2';
-import {invoiceBalance,invoiceStatus,cents,lineCents} from './invoice-math.mjs';
+import {invoiceBalance,invoiceStatus,cents,lineCents} from './invoice-math.mjs?v=area-1';
 export async function createInvoicePDF(invoice,payments,logoBytes,PDFLib,asAt,context={}){
  const lines=invoice.lines.map(l=>({...l,quantity:Number(l.quantity),rate:Number(l.rate)}));
  const subtotal=lines.reduce((n,l)=>n+lineCents(l),0);

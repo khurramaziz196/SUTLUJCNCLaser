@@ -1,5 +1,5 @@
 import {accountList} from './accounts.mjs?v=hr-1';
-import {lineCents} from './invoice-math.mjs';
+import {lineCents} from './invoice-math.mjs?v=area-1';
 import {stockLines} from './inventory.mjs';
 import {hrKinds,hrLines} from './hr.mjs';
 import {scrapKinds,scrapLines} from './scrap.mjs';
