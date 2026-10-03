@@ -1,16 +1,16 @@
 // Company letterhead defaults, document numbering and amounts in words for customer-facing documents.
 export const defaultCompany={
- name:'Sutluj CNC Laser',tagline:'CNC laser cutting · Sheet metal',address:'',phone:'',email:'',website:'',ntn:'',strn:'',
+ name:'GR Synergy Ventures',tagline:'CNC laser cutting · Sheet metal',address:'',phone:'',email:'',website:'',ntn:'',strn:'',
  bank_accounts:[],prepared_by:'',validity_days:15,machine_rate:0,
  payment_terms:'50% advance, balance before delivery',
  payment_terms_options:['100% advance','50% advance, balance before delivery','Cash on delivery','15 days credit','30 days credit'],validity_options:[7,15,30],
  terms:[
   'Prices are in PKR and based on the drawings, material and quantities quoted. Changes are re-quoted.',
-  'Material is supplied by Sutluj CNC Laser unless stated as customer-supplied. Customer-supplied material is cut at the customer\'s risk for material defects.',
+  'Material is supplied by GR Synergy Ventures unless stated as customer-supplied. Customer-supplied material is cut at the customer\'s risk for material defects.',
   'Standard laser-cutting tolerances apply unless otherwise agreed in writing.',
   'Lead time starts from receipt of approved drawings and the advance payment.',
   'Transport, bending and finishing are not included unless listed above.',
-  'Goods remain the property of Sutluj CNC Laser until paid in full.'
+  'Goods remain the property of GR Synergy Ventures until paid in full.'
  ].join('\n')
 };
 

@@ -1,6 +1,6 @@
 import {materials,matchGauge} from './gauge.mjs';
 import {lineCents,lineDiscount} from './invoice-math.mjs';
-import {defaultCompany,amountInWords,formatIBAN,defaultBankAccount} from './documents.mjs?v=accounts-1';
+import {defaultCompany,amountInWords,formatIBAN,defaultBankAccount} from './documents.mjs?v=gr-1';
 import {drawStamp} from './stamp.mjs?v=logo-2';
 // Shared PDF generator for quotations, invoices and purchase orders.
 // context.company is the letterhead; context.party is the customer or vendor directory entry.

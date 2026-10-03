@@ -2,7 +2,7 @@
 import {materials,matchGauge} from './gauge.mjs';
 export async function createJobCardPDF(job, quote, materialRows, logoBytes, PDFLib, context={}) {
   const {PDFDocument, StandardFonts, rgb}=PDFLib;
-  const company=context.company||{name:'Sutluj CNC Laser'};
+  const company=context.company||{name:'GR Synergy Ventures'};
   const pdf=await PDFDocument.create();
   const regular=await pdf.embedFont(StandardFonts.Helvetica), bold=await pdf.embedFont(StandardFonts.HelveticaBold);
   const ink=rgb(.10,.17,.21), blue=rgb(.06,.26,.45), muted=rgb(.40,.46,.49), line=rgb(.86,.89,.91), white=rgb(1,1,1), tint=rgb(.95,.97,.98);

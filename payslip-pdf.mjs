@@ -49,7 +49,7 @@ export async function createPayslipPDF(run, line, employee, logoBytes, PDFLib, o
   page.drawLine({start: {x: 42, y: 110}, end: {x: 230, y: 110}, thickness: .5, color: ink}); text('Employee signature', 42, 96, 8, regular, muted);
   page.drawLine({start: {x: 365, y: 110}, end: {x: 553, y: 110}, thickness: .5, color: ink}); text('Authorised by', 365, 96, 8, regular, muted);
   page.drawLine({start: {x: 42, y: 48}, end: {x: 553, y: 48}, thickness: .5, color: rule});
-  text(options.preview ? 'SAMPLE - preview workspace' : 'Sutluj CNC Laser | All amounts in PKR | Confidential', 42, 32, 8, regular, muted);
-  pdf.setTitle(`Sutluj CNC Laser - Payslip ${clean(line.code)} ${run.month}`); pdf.setAuthor('Sutluj CNC Laser');
+  text(options.preview ? 'SAMPLE - preview workspace' : 'GR Synergy Ventures | All amounts in PKR | Confidential', 42, 32, 8, regular, muted);
+  pdf.setTitle(`GR Synergy Ventures - Payslip ${clean(line.code)} ${run.month}`); pdf.setAuthor('GR Synergy Ventures');
   return pdf.save();
 }
