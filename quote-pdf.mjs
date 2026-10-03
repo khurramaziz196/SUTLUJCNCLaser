@@ -141,8 +141,8 @@ export async function createQuotePDF(quote, logoBytes, PDFLib, context={}) {
 
   // Signatures.
   // signature lines need about 62pt above the footer rule at y=52
-  // the company stamp (quotations and invoices) sits between the two signature blocks and needs a little more room
-  const stamped=!isPurchase&&company.stamp_enabled!==false;
+  // the company stamp (quotations, invoices and purchase orders) sits between the two signature blocks and needs a little more room
+  const stamped=company.stamp_enabled!==false;
   if(y-(stamped?70:62)<54)newPage();y=Math.min(y-32,140);
   if(stamped){const ink=await context.stampLogo;const logoImg=ink?.bytes?await pdf.embedPng(ink.bytes):null;drawStamp(page,PDFLib,{bold,regular},company,{cx:262,cy:y-2,r:40,logo:logoImg})}
   page.drawLine({start:{x:42,y},end:{x:230,y},thickness:.6,color:ink});page.drawLine({start:{x:365,y},end:{x:553,y},thickness:.6,color:ink});
