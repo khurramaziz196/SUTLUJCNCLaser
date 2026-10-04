@@ -3,6 +3,7 @@ import {lineCents} from './invoice-math.mjs?v=area-1';
 import {stockLines} from './inventory.mjs';
 import {hrKinds,hrLines} from './hr.mjs';
 import {scrapKinds,scrapLines} from './scrap.mjs';
+import {partyKinds,partyLines} from './parties.mjs?v=1';
 export const toCents=v=>Math.round(Number(v)*100);
 export function validateJournal(lines){
  if(!Array.isArray(lines)||lines.length<2||lines.length>100)throw Error('Use between 2 and 100 journal lines.');
@@ -26,6 +27,7 @@ export function sourceLines(kind,source,account,offset){
  if(kind==='stock')return stockLines(source,source.item,offset);
  if(hrKinds.includes(kind))return hrLines(kind,source);
  if(scrapKinds.includes(kind))return scrapLines(kind,source);
+ if(partyKinds.includes(kind))return partyLines(kind,source);
  throw Error('Unsupported posting source.');
 }
 export function reverseLines(lines){return lines.map(l=>({account:l.account,debit:l.credit,credit:l.debit}));}

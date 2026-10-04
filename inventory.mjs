@@ -30,11 +30,13 @@ export function sheetWeightKg(item){
  return Math.round(l*w*t*d/1000)/1000; // mm³ × g/cm³ ÷ 1e6 = kg, kept to 0.001 kg
 }
 
+// Sheet size as feet and inches when it is a whole-foot sheet (4' × 8'), with mm; otherwise mm only.
+export function sizeName(w,l){w=Number(w);l=Number(l);const inch=v=>v/25.4,whole=v=>Math.abs(inch(v)/12-Math.round(inch(v)/12))<0.01;return whole(w)&&whole(l)?`${Math.round(inch(w)/12)}' × ${Math.round(inch(l)/12)}' (${Math.round(w)} × ${Math.round(l)} mm)`:`${Math.round(inch(w)*10)/10}" × ${Math.round(inch(l)*10)/10}" (${Math.round(w)} × ${Math.round(l)} mm)`}
 export function itemLabel(item){
  if(item.category==='consumable')return item.name||'Consumable';
  if(item.category==='scrap')return `Scrap - ${materials[item.material]||'mixed metal'}`;
  const g=matchGauge(item.material,item.thickness_mm);
- return [`${materials[item.material]||'Material'}${item.grade?' '+item.grade:''}`,`${Number(item.thickness_mm)} mm${g?` (${g.gauge} ga)`:''}`,`${Number(item.width_mm)} × ${Number(item.length_mm)} mm`].join(' · ');
+ return [`${materials[item.material]||'Material'}${item.grade?' '+item.grade:''}`,`${Number(item.thickness_mm)} mm${g?` (${g.gauge} ga)`:''}`,sizeName(item.width_mm,item.length_mm)].join(' · ');
 }
 
 // Sequential references such as SM-0007, based on the highest existing number.
@@ -47,7 +49,7 @@ export function itemCode(item,items){
  if(item.category==='consumable')return nextReference('CON',items,'code');
  if(item.category==='remnant')return nextReference('REM',items,'code');
  if(item.category==='scrap')return `SCRAP-${materialCodes[item.material]||'MIX'}`;
- const base=`${materialCodes[item.material]}${item.grade?'-'+String(item.grade).toUpperCase().replace(/[^A-Z0-9]/g,''):''}-${Number(item.thickness_mm)}-${Number(item.width_mm)}x${Number(item.length_mm)}`;
+ const base=`${materialCodes[item.material]}${item.grade?'-'+String(item.grade).toUpperCase().replace(/[^A-Z0-9]/g,''):''}-${Number(item.thickness_mm)}-${Math.round(Number(item.width_mm))}x${Math.round(Number(item.length_mm))}`;
  return item.owner==='Customer'?nextReference('CUST-'+base,items,'code'):base;
 }
 
@@ -150,11 +152,12 @@ export function poReceiptStatus(po,moves){
 export function sizeFromText(text){const m=String(text||'').match(/(\d{3,5})\s*[×xX*]\s*(\d{3,5})/);if(!m)return null;const a=Number(m[1]),b=Number(m[2]);return {width_mm:Math.min(a,b),length_mm:Math.max(a,b)}}
 // What a PO line describes, as a business sheet item (material, thickness and size), when it can be read.
 export function itemFromPOLine(line){
- const l=inferThickness(line),size=sizeFromText(line.description);
+ const ft=Number(line.width_ft)>0&&Number(line.length_ft)>0?{width_mm:Math.round(Math.min(line.width_ft,line.length_ft)*304.8*10)/10,length_mm:Math.round(Math.max(line.width_ft,line.length_ft)*304.8*10)/10}:null;
+ const l=inferThickness(line),size=ft||sizeFromText(line.description);
  if(!densities[l.material]||!(Number(l.thickness_mm)>0)||!size)return null;
  return {category:'sheet',owner:'Business',customer:'',material:l.material,grade:'',thickness_mm:Number(l.thickness_mm),...size,reorder_level:0,location:''};
 }
 export function matchStockItem(line,items){
  const want=itemFromPOLine(line);if(!want)return null;
- return items.find(i=>i.category==='sheet'&&i.owner==='Business'&&i.material===want.material&&Math.abs(Number(i.thickness_mm)-want.thickness_mm)<0.0005&&Number(i.width_mm)===want.width_mm&&Number(i.length_mm)===want.length_mm)||null;
+ return items.find(i=>i.category==='sheet'&&i.owner==='Business'&&i.material===want.material&&Math.abs(Number(i.thickness_mm)-want.thickness_mm)<0.0005&&Math.abs(Number(i.width_mm)-want.width_mm)<3&&Math.abs(Number(i.length_mm)-want.length_mm)<3)||null;
 }

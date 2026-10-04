@@ -96,3 +96,32 @@ export function jobCosting({revenue=0,material=0,machineMinutes=0,machineRate=0,
  const margin=(paise(revenue)-paise(cost))/100;
  return {revenue:Number(revenue),material:Number(material),machine,labour:Number(labour),expenses:Number(expenses),cost,margin,marginPct:Number(revenue)>0?Math.round(margin/Number(revenue)*1000)/10:null};
 }
+
+// Scope per line item: scope_lines[lineIndex][taskId] = {status, progress, done_at}. Lines without their own
+// entry follow the job-level task. The job-level task is then derived from its lines: N/A when every line is
+// N/A, Done when every applicable line is done, Pending when none has started, otherwise In progress with
+// the average of the lines.
+export function lineCell(scopeLines, li, task) {
+ const c = scopeLines?.[li]?.[task.id];
+ return c ? {status: c.status || 'Pending', progress: Number(c.progress) || 0, done_at: c.done_at || ''} : {status: task.status || 'Pending', progress: Number(task.progress) || 0, done_at: task.done_at || ''};
+}
+export function deriveScope(scope, scopeLines, lineCount) {
+ const n = Math.max(1, lineCount || 1);
+ return scope.map(t => {
+  const cells = Array.from({length: n}, (_, i) => lineCell(scopeLines, i, t)), app = cells.filter(c => c.status !== 'Not required');
+  if (!app.length) return {...t, status: 'Not required', progress: 0, done_at: ''};
+  if (app.every(c => c.status === 'Done')) return {...t, status: 'Done', progress: 100, done_at: app.map(c => c.done_at).filter(Boolean).sort().pop() || t.done_at || ''};
+  if (app.every(c => c.status === 'Pending')) return {...t, status: 'Pending', progress: 0, done_at: ''};
+  return {...t, status: 'In progress', progress: Math.round(app.reduce((s, c) => s + taskProgress(c), 0) / app.length), done_at: ''};
+ });
+}
+export function lineProgress(scope, scopeLines, li) {
+ const cells = scope.map(t => lineCell(scopeLines, li, t)).filter(c => c.status !== 'Not required');
+ return cells.length ? Math.round(cells.reduce((s, c) => s + taskProgress(c), 0) / cells.length) : 0;
+}
+// Every line gets its own copy of every task, so later changes no longer follow the job-level value.
+export function materializeLines(scope, scopeLines, lineCount) {
+ const out = {};
+ for (let i = 0; i < Math.max(1, lineCount || 1); i++) { out[i] = {}; for (const t of scope) out[i][t.id] = lineCell(scopeLines, i, t); }
+ return out;
+}
