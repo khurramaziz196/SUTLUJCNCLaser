@@ -103,7 +103,7 @@ export function jobCosting({revenue=0,material=0,machineMinutes=0,machineRate=0,
 // the average of the lines.
 export function lineCell(scopeLines, li, task) {
  const c = scopeLines?.[li]?.[task.id];
- return c ? {status: c.status || 'Pending', progress: Number(c.progress) || 0, done_at: c.done_at || ''} : {status: task.status || 'Pending', progress: Number(task.progress) || 0, done_at: task.done_at || ''};
+ return c ? {status: c.status || 'Pending', progress: Number(c.progress) || 0, done_at: c.done_at || '', done_qty: c.done_qty ?? null} : {status: task.status || 'Pending', progress: Number(task.progress) || 0, done_at: task.done_at || '', done_qty: null};
 }
 export function deriveScope(scope, scopeLines, lineCount) {
  const n = Math.max(1, lineCount || 1);
@@ -125,3 +125,13 @@ export function materializeLines(scope, scopeLines, lineCount) {
  for (let i = 0; i < Math.max(1, lineCount || 1); i++) { out[i] = {}; for (const t of scope) out[i][t.id] = lineCell(scopeLines, i, t); }
  return out;
 }
+
+// Piece counting: a task on a line with more than one piece is tracked as pieces done (0…qty); the status and %
+// follow from the count. Design (per drawing) and Material (per sheet issued) stay a simple status.
+export const countsPieces = (task, qty) => Number(qty) > 1 && !['design', 'material'].includes(task.key);
+export function cellFromCount(prev, done, qty, today) {
+ const q = Math.max(1, Math.ceil(Number(qty) || 1)), n = Math.max(0, Math.min(q, Math.round(Number(done) || 0)));
+ const status = n === 0 ? 'Pending' : n === q ? 'Done' : 'In progress';
+ return {status, progress: Math.round(n / q * 100), done_qty: n, done_at: status === 'Done' ? (prev?.done_at || today) : ''};
+}
+export function piecesDone(cell, qty) { const q = Math.ceil(Number(qty) || 1); return cell.done_qty != null ? cell.done_qty : cell.status === 'Done' ? q : cell.status === 'In progress' ? Math.round((Number(cell.progress) || 0) * q / 100) : 0; }

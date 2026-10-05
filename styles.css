@@ -654,3 +654,52 @@ button.sc-cell:not(:disabled):hover{box-shadow:0 0 0 2px #9fb8b2}
 .issue-other{margin-top:10px}.issue-other summary{cursor:pointer;font-size:12.5px;font-weight:650;color:#4b5f5c}
 .help.warn{color:#85651d;background:#fbf0d6;padding:6px 10px;border-radius:7px}
 td small.src{color:#5b4a8a}
+/* Inventory control: stock take and valuation */
+.take-card .cardhead{align-items:flex-start;flex-wrap:wrap}.take-card .cardhead h2 .pill{vertical-align:2px;margin-left:6px}
+.take-card .row{gap:8px;flex-wrap:wrap}
+.take-sum{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.take-sum div{padding:12px 20px;border-right:1px solid var(--line)}.take-sum div:last-child{border-right:0}
+.take-sum span{display:block;font-size:11.5px;color:#7b8a85}.take-sum b{display:block;font-size:17px;margin-top:3px;font-variant-numeric:tabular-nums}
+.take-sum .net{background:#183e38;color:#fff}.take-sum .net span{color:#c4d5cc}
+.take-table input[data-take-count]{width:96px;text-align:right;padding:6px 8px;margin:0}.take-table input[data-take-note]{width:100%;min-width:120px;padding:6px 8px;margin:0}
+.take-table tr.var td{background:#fff8ef}.take-table tr.todo td:nth-child(4) input{border-color:#e3c48f}
+.take-table .ok{color:#3f7a3a;font-weight:700}
+b.pos,.pos{color:#3f7a3a}b.neg,.neg{color:#a0441d}
+.take-foot{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 24px;border-top:1px solid var(--line);flex-wrap:wrap}
+.val-chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px;border-bottom:1px solid var(--line)}
+.val-chips span{font-size:12.5px;background:#f2f6f4;border-radius:999px;padding:5px 12px;color:#4b5f5c}.val-chips span.warn{background:#fbf0d6;color:#85651d}
+tr.total td{background:#f7faf8}
+@media(max-width:700px){.take-sum{grid-template-columns:1fr 1fr}}
+.grn-hint{display:block;font-size:11.5px;margin-top:3px}.grn-hint.ok{color:#3f7a3a}.grn-hint.new{color:#3f5f8f}
+.grn-table select[data-grn-item]{max-width:360px}
+.chip.chip-owed{border-color:#e3c48f}.chip.chip-owed.selected{background:#85651d;border-color:#85651d}
+/* Accounts module */
+.acct-total{margin-left:auto;font-variant-numeric:tabular-nums}.account-group summary .fine{margin-left:6px}
+.post-kinds{list-style:none;margin:0;padding:6px 24px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 18px}
+.post-kinds li{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.pl-mini{display:grid;gap:0}.pl-mini div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.pl-mini div.sub-total{font-weight:700}.pl-mini small{color:#7b8a85;font-weight:400;margin-left:6px}.pl-mini div:last-child{border-bottom:0;font-size:15px}
+.lock-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.lock-row input{padding:6px 8px;margin-left:6px}
+.post-all-table td small{display:block;font-size:11.5px;color:#5d706c}.post-all-table tr.skip td{background:#fbf6ee}
+.report-tools{flex-wrap:wrap;gap:10px}.report-tools input[type=date]{padding:6px 8px;margin-left:6px}
+.report-seg{display:inline-flex;flex-wrap:wrap}.report-seg button{padding:7px 12px}.report-seg button.on.done{background:#183e38;color:#fff}
+.quick-periods button{padding:6px 10px;font-size:12px}
+.report-head{padding:18px 24px 12px;border-bottom:1px solid var(--line)}.report-head b{font-size:12px;letter-spacing:1px;color:#6b7c79;text-transform:uppercase}.report-head h2{margin:4px 0 2px}.report-head span{font-size:13px;color:#73837e}
+.fin-table td,.fin-table th{padding:8px 24px!important}
+.fin-table tr.sec td{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#5d706c;padding-top:18px!important;background:#fafcfb}
+.fin-table tr.grp td{font-weight:650}.fin-table td.ind{padding-left:44px!important}
+.fin-table tr.sub-total td{font-weight:650;border-top:1px solid #cfd9d6}
+.fin-table tr.grand td{font-weight:750;font-size:14.5px;border-top:2px solid #33484a;background:#f5f8f7}
+.fin-table tr.grand.net td{background:#183e38;color:#fff;border-top:0}.fin-table tr.grand.net small{color:#c4d5cc}
+.fin-table small{color:#7b8a85;font-weight:400;margin-left:6px}
+td.neg,b.neg,.neg{color:#a0441d}td.pos{color:#3f7a3a}
+.bs-check{margin:0;padding:12px 24px;font-weight:650;font-size:13px}.bs-check.ok{color:#3f7a3a}
+.account-group tr.is-inactive td{opacity:.55}.account-group td small{display:block;color:#7b8a85;font-size:11.5px;margin-top:2px}
+.fin-table tr.cls td{font-weight:700;color:#183e38;padding-top:12px!important;font-size:13px}.fin-table td.ind2{padding-left:60px!important}
+.fin-table tr.cls-total td{font-weight:700;border-top:1px solid #9fb0ab;background:#f7faf8}
+/* Scope matrix: piece counts */
+.sc-cell.pcs span{font-variant-numeric:tabular-nums}
+.sc-cell.warn{box-shadow:0 0 0 2px #e0a04a inset}
+.sm-count{display:flex;align-items:center;gap:8px;margin:4px 0 10px}.sm-count button{width:34px;height:34px;padding:0;font-size:18px;font-weight:700}
+.sm-count input{width:64px;text-align:center;font-size:16px;font-weight:700;padding:6px;margin:0}.sm-count span{font-size:12.5px;color:#5d706c;flex:1}
+.sm-count-actions{display:flex;gap:6px;flex-wrap:wrap}.sm-count-actions button{padding:6px 10px;font-size:12.5px}

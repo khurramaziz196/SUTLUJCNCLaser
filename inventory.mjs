@@ -114,7 +114,7 @@ export function offcutValue(item,perSheetCost,length,width){
  return {length_mm:l,width_mm:w,value:Math.round(paise(perSheetCost)*l*w/(Number(item.length_mm)*Number(item.width_mm)))/100};
 }
 
-export function inventoryAccount(item){return item.category==='consumable'?item.account:{steel:'1201',galvanized:'1201',stainless:'1202',aluminium:'1203'}[item.material]}
+export function inventoryAccount(item){return item.category==='consumable'?item.account:{steel:'1201',galvanized:'1206',stainless:'1202',aluminium:'1203'}[item.material]}
 export function suggestedOffset(item){return item.category!=='consumable'?'2001':['5101','5102'].includes(item.account)?'2002':'2003'}
 
 export function isPostable(move,item){
