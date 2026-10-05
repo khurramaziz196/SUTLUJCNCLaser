@@ -1,7 +1,7 @@
 export const workspaceKey='sutluj-workspace-v1';
-export const collections=['records','customers','vendors','invoices','payments','workOrders','journals','stockItems','stockMoves','employees','attendance','advances','payrolls','scrapSales','vendorPayments','stockTakes'];
+export const collections=['records','customers','vendors','invoices','payments','workOrders','journals','stockItems','stockMoves','employees','attendance','advances','payrolls','scrapSales','vendorPayments','stockTakes','deliveryNotes'];
 // Added after the first release: workspaces saved earlier load with these as empty lists.
-export const optionalCollections=['stockItems','stockMoves','employees','attendance','advances','payrolls','scrapSales','vendorPayments','stockTakes'];
+export const optionalCollections=['stockItems','stockMoves','employees','attendance','advances','payrolls','scrapSales','vendorPayments','stockTakes','deliveryNotes'];
 export function validateWorkspace(value){
  const valid=k=>Array.isArray(value.data[k])&&value.data[k].every(r=>r&&typeof r==='object'&&typeof r.id==='string');
  if(value?.version!==1||typeof value.revision!=='string'||!value.data||!collections.every(k=>optionalCollections.includes(k)&&value.data[k]===undefined||valid(k)))throw Error('Local data could not be read. It has not been overwritten.');
