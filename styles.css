@@ -894,3 +894,11 @@ dialog::backdrop{background:rgba(9,27,51,.45);backdrop-filter:blur(4px)}
 @media(max-width:700px){.flow-detail{flex-direction:column;align-items:stretch}.g-body{padding-left:18px}.term{grid-template-columns:1fr;gap:3px}.guides{grid-template-columns:1fr}.tour{right:16px;bottom:16px}.help-btn{width:30px;height:30px}.seg{width:100%}.flow-detail .row{justify-content:flex-end}}
 @media(max-width:700px){.help-head{flex-direction:column;align-items:stretch}.help-head .row{flex-direction:row!important;align-items:center!important}.help-head .row button{flex:1;padding:10px}.help-search input{font-size:14px}}
 @media(max-width:700px){.flows .cardhead{flex-direction:column;align-items:stretch}.flows .seg button{flex:1}}
+/* line items: room for the three row buttons so they never cover the amount */
+@media(min-width:761px){
+#recordform.priced #lines .lineitem{grid-template-columns:22px minmax(240px,1fr) 60px 104px 74px 78px 64px 90px 54px minmax(96px,auto) 90px}
+#recordform.priced #lines .lineitem.no-discount{grid-template-columns:22px minmax(240px,1fr) 60px 104px 74px 78px 64px 90px minmax(96px,auto) 90px}
+#recordform[data-kind="purchase"] #lines .lineitem{grid-template-columns:22px minmax(270px,1fr) 60px 104px 74px 78px 64px 90px 54px minmax(96px,auto) 90px}
+#recordform[data-kind="purchase"] #lines .lineitem.no-discount{grid-template-columns:22px minmax(270px,1fr) 60px 104px 74px 78px 64px 90px minmax(96px,auto) 90px}
+#recordform.priced #lines .lineamount{overflow:hidden;text-overflow:ellipsis;padding-right:4px}
+}
