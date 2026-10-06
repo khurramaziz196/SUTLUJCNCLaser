@@ -60,3 +60,75 @@ export function layoutRects(sw, sl, pw, pl, gap = 5, margin = 10, rotate = true)
   for (let r = 0; r < extraRows; r++) for (let c = 0; c < extraAcross; c++) rects.push({x: start + r * (a + gap), y: margin + c * (b + gap), w: a, h: b, turned: !turned});
   return {...best, rects};
 }
+
+// ---- Mixed nesting: different parts cut from the same sheets ----
+// Rectangle packing (MaxRects) of several part types onto sheets of one size, with a gap between parts and an edge
+// margin. Each heuristic is a placement rule; the best result (fewest sheets, then the biggest usable leftover on the
+// last sheet) is kept. types: [{key, w, l, qty}] in mm, w across the sheet and l along it. Coordinates as layoutRects.
+const EPS = 1e-6;
+function prune(free, minSide) {
+  const keep = free.filter(f => f.w + EPS >= minSide && f.h + EPS >= minSide);
+  return keep.filter((a, i) => !keep.some((b, j) => j !== i && a.x + EPS >= b.x && a.y + EPS >= b.y && a.x + a.w <= b.x + b.w + EPS && a.y + a.h <= b.y + b.h + EPS && (j < i || a.x !== b.x || a.y !== b.y || a.w !== b.w || a.h !== b.h)));
+}
+function place(free, r) {
+  const out = [];
+  for (const f of free) {
+    if (r.x >= f.x + f.w - EPS || r.x + r.w <= f.x + EPS || r.y >= f.y + f.h - EPS || r.y + r.h <= f.y + EPS) { out.push(f); continue; }
+    if (r.x > f.x + EPS) out.push({x: f.x, y: f.y, w: r.x - f.x, h: f.h});
+    if (r.x + r.w < f.x + f.w - EPS) out.push({x: r.x + r.w, y: f.y, w: f.x + f.w - r.x - r.w, h: f.h});
+    if (r.y > f.y + EPS) out.push({x: f.x, y: f.y, w: f.w, h: r.y - f.y});
+    if (r.y + r.h < f.y + f.h - EPS) out.push({x: f.x, y: r.y + r.h, w: f.w, h: f.y + f.h - r.y - r.h});
+  }
+  return out;
+}
+const scorers = {
+  bl: (f, w, h) => [f.x + w, f.y],                                                   // pack towards one end: leftover stays in one piece
+  bssf: (f, w, h) => [Math.min(f.w - w, f.h - h), Math.max(f.w - w, f.h - h)],         // tightest fit on the short side
+  baf: (f, w, h) => [f.w * f.h - w * h, Math.min(f.w - w, f.h - h)]                    // tightest fit by area
+};
+const less = (a, b) => a[0] < b[0] - EPS || (Math.abs(a[0] - b[0]) <= EPS && a[1] < b[1] - EPS);
+// order: 'global' picks the best (type, place) each time; otherwise types are tried biggest first.
+function packRun(types, sw, sl, gap, margin, rotate, scorer, order) {
+  const BW = sl - 2 * margin + gap, BH = sw - 2 * margin + gap, left = types.map(t => Math.ceil(t.qty)), score = scorers[scorer];
+  const idx = types.map((t, i) => i);
+  if (order === 'area') idx.sort((a, b) => types[b].w * types[b].l - types[a].w * types[a].l);
+  if (order === 'side') idx.sort((a, b) => Math.max(types[b].w, types[b].l) - Math.max(types[a].w, types[a].l));
+  const sheets = [];
+  while (left.some(n => n > 0)) {
+    let free = [{x: 0, y: 0, w: BW, h: BH}]; const rects = [];
+    for (;;) {
+      const minSide = Math.min(...idx.filter(i => left[i] > 0).map(i => Math.min(types[i].w, types[i].l) + gap));
+      let best = null;
+      for (const i of idx) {
+        if (!left[i]) continue; const t = types[i];
+        const ors = rotate && Math.abs(t.w - t.l) > EPS ? [[t.l + gap, t.w + gap, false], [t.w + gap, t.l + gap, true]] : [[t.l + gap, t.w + gap, false]];
+        for (const [w, h, turned] of ors) for (const f of free) if (w <= f.w + EPS && h <= f.h + EPS) { const s = score(f, w, h); if (!best || less(s, best.s)) best = {s, i, x: f.x, y: f.y, w, h, turned}; }
+        if (best && order !== 'global') break;
+      }
+      if (!best) break;
+      left[best.i]--; rects.push({x: margin + best.x, y: margin + best.y, w: best.w - gap, h: best.h - gap, key: types[best.i].key, turned: best.turned});
+      free = prune(place(free, best), left.some(n => n > 0) ? Math.min(minSide, ...idx.filter(i => left[i] > 0).map(i => Math.min(types[i].w, types[i].l) + gap)) : 0);
+    }
+    if (!rects.length) return {problem: 'A part is larger than the sheet', sheets};
+    // Largest leftover piece on this sheet (real size, without the gap).
+    let rest = [{x: 0, y: 0, w: BW, h: BH}];
+    for (const r of rects) rest = prune(place(rest, {x: r.x - margin, y: r.y - margin, w: r.w + gap, h: r.h + gap}), 0);
+    const big = rest.map(f => ({x: margin + f.x, y: margin + f.y, w: f.w - gap, h: f.h - gap})).filter(f => f.w >= IN && f.h >= IN).sort((a, b) => b.w * b.h - a.w * a.h)[0] || null;
+    sheets.push({rects, remnant: big});
+  }
+  return {sheets};
+}
+const runs = [['bl', 'area'], ['bl', 'side'], ['bssf', 'global'], ['baf', 'global'], ['bssf', 'area']];
+export function packMixed(types, sw, sl, gap = 5, margin = 10, rotate = true) {
+  types = types.filter(t => t.w > 0 && t.l > 0 && t.qty > 0); gap = Math.max(0, Number(gap) || 0); margin = Math.max(0, Number(margin) || 0);
+  if (!types.length) return null;
+  const pieces = types.reduce((n, t) => n + Math.ceil(t.qty), 0), use = pieces > 600 ? runs.slice(0, 1) : pieces > 250 ? runs.slice(0, 2) : runs;
+  let best = null;
+  for (const [s, o] of use) {
+    const r = packRun(types, sw, sl, gap, margin, rotate, s, o); if (r.problem) return r;
+    const last = r.sheets[r.sheets.length - 1], key = [r.sheets.length, -(last.remnant ? last.remnant.w * last.remnant.h : 0)];
+    if (!best || less(key, best.key)) best = {...r, key};
+  }
+  const partArea = types.reduce((n, t) => n + t.w * t.l * Math.ceil(t.qty), 0), n = best.sheets.length;
+  return {sheets: best.sheets, count: n, usage: Math.round(partArea / (n * sw * sl) * 1000) / 10, offcutSqFt: Math.round((n * sw * sl - partArea) / (FT * FT) * 10) / 10, partArea};
+}

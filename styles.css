@@ -902,3 +902,25 @@ dialog::backdrop{background:rgba(9,27,51,.45);backdrop-filter:blur(4px)}
 #recordform[data-kind="purchase"] #lines .lineitem.no-discount{grid-template-columns:22px minmax(270px,1fr) 60px 104px 74px 78px 64px 90px minmax(96px,auto) 90px}
 #recordform.priced #lines .lineamount{overflow:hidden;text-overflow:ellipsis;padding-right:4px}
 }
+/* Sheet calculator: combine items on shared sheets */
+.sc-mode{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.sc-mode .seg{display:inline-flex;gap:4px;background:#eef2f7;border-radius:10px;padding:4px;flex-wrap:wrap}
+.sc-mode .seg button{border:0;background:transparent;padding:8px 14px;border-radius:7px;font-size:13px;color:#4a5870}
+.sc-mode .seg button.on{background:#0c3c6c;color:#fff;box-shadow:0 1px 3px #0b224033}
+.sc-mode small{flex:1;min-width:220px}
+.sc-comb{text-align:center}.sc-comb input{width:18px;height:18px;accent-color:#0c3c6c}
+.mx-tag{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:5px;background:#f26b21;color:#fff;font-size:11px;font-weight:800;margin-right:2px}
+.mx-row small{color:#748194;font-size:11.5px;margin-left:4px}
+.mx-save{display:flex;align-items:center;gap:12px;margin-top:10px;padding:12px 14px;border-radius:10px;background:#ecf6ee;border:1px solid #cfe6d4}
+.mx-save b{display:block;font-size:13px}.mx-save small{display:block;color:#5d6b80;font-size:12px;margin-top:2px}
+.mx-save em{margin-left:auto;font-style:normal;font-weight:800;color:#1f6b2a;white-space:nowrap;font-size:13px}
+.mx-save.none{background:#f5f7fa;border-color:var(--line)}.mx-save.none em{color:#748194}
+.pf-mix{stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
+.pf-remnant{fill:none;stroke:#c2410c;stroke-width:2;stroke-dasharray:7 5;vector-effect:non-scaling-stroke}
+.mx-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+.mx-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 6px;background:#fff}
+.mx-chip i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.mx-small{margin-top:10px;font-size:12px;color:#4a5870;align-items:flex-start}
+@media(max-width:700px){.sc-mode .seg{width:100%}.sc-mode .seg button{flex:1}.mx-save{flex-wrap:wrap}.mx-save em{margin-left:0}}
+.sc{grid-template-columns:minmax(0,1fr)}.sc>*,.sc-cols>*{min-width:0}@media(max-width:700px){.calc-main{margin:10px;padding:14px 12px}.sc-mode .seg button{white-space:normal}.sc-mode small{min-width:0}}
+@media(max-width:700px){.sc-sum{display:block;overflow-x:auto;white-space:nowrap}}
