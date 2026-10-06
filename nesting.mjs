@@ -132,3 +132,22 @@ export function packMixed(types, sw, sl, gap = 5, margin = 10, rotate = true) {
   const partArea = types.reduce((n, t) => n + t.w * t.l * Math.ceil(t.qty), 0), n = best.sheets.length;
   return {sheets: best.sheets, count: n, usage: Math.round(partArea / (n * sw * sl) * 1000) / 10, offcutSqFt: Math.round((n * sw * sl - partArea) / (FT * FT) * 10) / 10, partArea};
 }
+
+// ---- Parts bigger than the sheet ----
+// A part longer (or wider) than the usable sheet is cut in pieces that each fit and are joined on site.
+// mode 'equal' gives equal pieces; 'max' gives full-length pieces plus one shorter remainder.
+// Returns null when the part fits whole, otherwise the pieces (inches) with their place in the full part.
+export function splitPart(w_in, l_in, sw, sl, {margin = 0, rotate = true, mode = 'equal'} = {}) {
+  const r3 = v => Math.round(v * 1000) / 1000, uW = r3((sw - 2 * margin) / IN), uL = r3((sl - 2 * margin) / IN), w = Number(w_in), l = Number(l_in), e = 1e-6;
+  if (!(w > 0 && l > 0 && uW > 0 && uL > 0)) return null;
+  if ((w <= uW + e && l <= uL + e) || (rotate && l <= uW + e && w <= uL + e)) return null;
+  let best = null;
+  for (const [a, b, turned] of rotate ? [[w, l, false], [l, w, true]] : [[w, l, false]]) {   // a across the sheet, b along it
+    const nA = Math.ceil(a / uW - e), nB = Math.ceil(b / uL - e), n = nA * nB;
+    if (!best || n < best.n || (n === best.n && nA < best.nA)) best = {a, b, turned, nA, nB, n};
+  }
+  const cut = (len, n, max) => { for (let k = n; k < n + 5; k++) { const first = mode === 'max' ? Math.floor(max * 100) / 100 : Math.floor(len / k * 100) / 100, out = k === 1 ? [len] : [...Array(k - 1).fill(first), Math.round((len - first * (k - 1)) * 100) / 100]; if (out.every(v => v > 0 && v <= max + e)) return out; } return [len]; };
+  const As = cut(best.a, best.nA, uW), Bs = cut(best.b, best.nB, uL), pieces = [];
+  let y = 0; As.forEach((pa, ia) => { let x = 0; Bs.forEach((pb, ib) => { pieces.push({w_in: pa, l_in: pb, x, y, tag: As.length > 1 ? `${String.fromCharCode(97 + ib)}${ia + 1}` : String.fromCharCode(97 + ib)}); x += pb; }); y += pa; });
+  return {pieces, across: best.a, along: best.b, turned: best.turned, joints: Bs.slice(0, -1).map((v, k) => Bs.slice(0, k + 1).reduce((s, x) => s + x, 0)), seams: As.slice(0, -1).map((v, k) => As.slice(0, k + 1).reduce((s, x) => s + x, 0))};
+}

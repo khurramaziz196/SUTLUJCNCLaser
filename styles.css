@@ -924,3 +924,10 @@ dialog::backdrop{background:rgba(9,27,51,.45);backdrop-filter:blur(4px)}
 @media(max-width:700px){.sc-mode .seg{width:100%}.sc-mode .seg button{flex:1}.mx-save{flex-wrap:wrap}.mx-save em{margin-left:0}}
 .sc{grid-template-columns:minmax(0,1fr)}.sc>*,.sc-cols>*{min-width:0}@media(max-width:700px){.calc-main{margin:10px;padding:14px 12px}.sc-mode .seg button{white-space:normal}.sc-mode small{min-width:0}}
 @media(max-width:700px){.sc-sum{display:block;overflow-x:auto;white-space:nowrap}}
+/* Sheet calculator: parts bigger than the sheet, cut in pieces */
+.joint-fig{border:1px solid #f3c9a8;background:#fffaf5;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.joint-fig svg{width:100%;height:auto;display:block;margin-top:6px;max-height:220px}
+.jt-head b{display:block;font-size:13px;color:#8a3b12}.jt-head small{display:block;font-size:12px;color:#5d6b80;margin-top:2px}
+.jt-cut{stroke:#d9480f;stroke-width:2.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+.jt-tag{display:inline-block;background:#fde7d3;color:#8a3b12;font-weight:700;border-radius:4px;padding:0 5px;font-size:11px}
+.mx-chip small{color:#748194}
