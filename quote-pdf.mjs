@@ -1,6 +1,6 @@
 import {materials,matchGauge} from './gauge.mjs';
 import {sizeText,poSizeText} from './size.mjs?v=2';
-import {lineCents,lineDiscount,billedQty} from './invoice-math.mjs?v=area-1';
+import {lineCents,lineDiscount,billedQty} from './invoice-math.mjs?v=kg-1';
 import {defaultCompany,amountInWords,formatIBAN,defaultBankAccount} from './documents.mjs?v=gr-1';
 import {drawStamp} from './stamp.mjs?v=logo-2';
 // Shared PDF generator for quotations, invoices and purchase orders.
@@ -94,7 +94,7 @@ export async function createQuotePDF(quote, logoBytes, PDFLib, context={}) {
     text(String(index+1),50,y,10,regular,muted);
     desc.forEach((s,i)=>text(s,72,y-i*14));
     detail.filter(Boolean).forEach((s,i)=>text(s,72,y-desc.length*14-i*12,8.5,regular,muted));
-    const byArea=!isPurchase&&item.pricing==='area'&&Number(item.area_sqft)>0,kg=isPurchase&&Number(item.weight_kg)>0?Number(item.weight_kg):null;right(`${item.quantity}${item.unit?' '+item.unit:''}`,330,y);right(isPurchase?(kg?kg.toFixed(2):'-'):byArea?Number(item.area_sqft).toFixed(2):'-',400,y,10,regular,byArea||kg?ink:muted);right(amount(item.rate),470,y);if(byArea)right('per ft²',470,y-12,7.5,regular,muted);right(amount(lineCents(item)/100),545,y);
+    const byArea=!isPurchase&&item.pricing==='area'&&Number(item.area_sqft)>0,kg=isPurchase&&Number(item.weight_kg)>0?Number(item.weight_kg):null;right(`${item.quantity}${item.unit?' '+item.unit:''}`,330,y);right(isPurchase?(kg?kg.toFixed(2):'-'):byArea?Number(item.area_sqft).toFixed(2):'-',400,y,10,regular,byArea||kg?ink:muted);right(amount(item.rate),470,y);if(byArea)right('per ft²',470,y-12,7.5,regular,muted);if(isPurchase&&item.pricing==='weight'&&kg)right('per kg',470,y-12,7.5,regular,muted);right(amount(lineCents(item)/100),545,y);
     y-=height;
   });
   rule(y+10);

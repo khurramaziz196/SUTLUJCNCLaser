@@ -931,3 +931,17 @@ dialog::backdrop{background:rgba(9,27,51,.45);backdrop-filter:blur(4px)}
 .jt-cut{stroke:#d9480f;stroke-width:2.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
 .jt-tag{display:inline-block;background:#fde7d3;color:#8a3b12;font-weight:700;border-radius:4px;padding:0 5px;font-size:11px}
 .mx-chip small{color:#748194}
+.jt-note{color:#1f6b2a!important;font-weight:650}
+/* Purchase order lines: editable weight and rate per kg / per unit */
+.lineweight-cell{display:flex;align-items:center;gap:3px;min-width:0}
+.lineweight-cell .lineweight{width:100%;min-width:0;text-align:right;padding:8px 6px;font-variant-numeric:tabular-nums;font-weight:650}
+.lineweight-cell .lineweight.manual{background:#fff6ec;border-color:#f2a46a;color:#8a3b12}
+.lineweight-reset{border:0;background:none;padding:2px 3px;color:#c2410c;font-size:14px;line-height:1}
+.linerate-cell{display:flex;gap:3px;min-width:0}.linerate-cell .linerate{flex:1;min-width:0}
+.linerate-cell .linebasis{width:58px;flex:none;padding:8px 2px;font-size:12px}
+@media(max-width:760px){#recordform.priced #lines .linerate-cell{grid-area:rate}}
+@media(min-width:761px){
+#recordform[data-kind="purchase"] #lines .lineitem{grid-template-columns:22px minmax(250px,1fr) 60px 104px 74px 92px 64px 132px 54px minmax(96px,auto) 90px}
+#recordform[data-kind="purchase"] #lines .lineitem.no-discount{grid-template-columns:22px minmax(250px,1fr) 60px 104px 74px 92px 64px 132px minmax(96px,auto) 90px}
+}
+@media(max-width:760px){.linerate-cell{flex-direction:column}.linerate-cell .linebasis{width:100%}.lineweight-cell .lineweight{padding:9px 6px}}

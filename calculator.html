@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sheet calculator</title>
 <link rel="icon" type="image/jpeg" href="sutluj-logo.jpg?v=gr-3">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"><link rel="stylesheet" href="styles.css?v=split-1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"><link rel="stylesheet" href="styles.css?v=pokg-3">
 </head>
 <body class="calc-page">
 <header class="calc-top"><img src="sutluj-logo.jpg?v=gr-3" alt=""><div><b>Sheet calculator</b><span id="calc-sub"></span></div></header>
@@ -14,7 +14,7 @@
 <script type="module">
 // Pop-out sheet calculator. Starts from what the app saved when "Pop out" was pressed; "Apply to quote"
 // sends the items back to the app tab that opened it (same browser, over a BroadcastChannel).
-import {mountCalculator} from './calculator.mjs?v=6';
+import {mountCalculator} from './calculator.mjs?v=7';
 let data = {};
 try { data = JSON.parse(localStorage.getItem('gr-sheet-calc') || '{}'); } catch {}
 const token = location.hash.slice(1), linked = !!(data.linked && data.token === token);

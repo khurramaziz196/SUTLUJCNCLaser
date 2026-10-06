@@ -14,7 +14,9 @@ export function validatePayment(amount,due) {
 // Line totals in paise. A line may carry an optional percentage discount (0-100).
 export const lineDiscount = line => { const d = Number(line?.discount); return Number.isFinite(d) && d > 0 ? d : 0; };
 // Lines priced by area (W x L given) bill the total square feet; other lines bill the quantity.
-export const billedQty = line => line?.pricing === 'area' && Number(line.area_sqft) > 0 ? Number(line.area_sqft) : Number(line.quantity);
+// Quantity the rate applies to: area (ft²) for area-priced quote lines, weight (kg) for purchase lines bought per kg,
+// otherwise the quantity.
+export const billedQty = line => line?.pricing === 'area' && Number(line.area_sqft) > 0 ? Number(line.area_sqft) : line?.pricing === 'weight' && Number(line.weight_kg) > 0 ? Number(line.weight_kg) : Number(line.quantity);
 export const lineCents = line => Math.round(billedQty(line) * Number(line.rate) * (100 - lineDiscount(line)));
 export function documentTotals(lines, tax) {
  let gross = 0, net = 0;

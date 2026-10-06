@@ -1,7 +1,7 @@
 import {createLocalStore,validateWorkspace} from './local-store.mjs?v=dn-1';
-import {createInvoicePDF} from './invoice-pdf.mjs?v=area-1';
-import {validateJournal,sourceLines,reverseLines,ledgerReport} from './ledger.mjs?v=coa-2';
-import {invoiceBalance,invoiceStatus,validatePayment,documentTotals,validateDiscount,lineDiscount,lineCents,receivablesAgeing,ageingBuckets,customerStatement} from './invoice-math.mjs?v=area-1';
+import {createInvoicePDF} from './invoice-pdf.mjs?v=kg-1';
+import {validateJournal,sourceLines,reverseLines,ledgerReport} from './ledger.mjs?v=kg-1';
+import {invoiceBalance,invoiceStatus,validatePayment,documentTotals,validateDiscount,lineDiscount,lineCents,receivablesAgeing,ageingBuckets,customerStatement} from './invoice-math.mjs?v=kg-1';
 import {createStatementPDF} from './statement-pdf.mjs?v=soa-3';
 import {accountGroups,accountList,expenseAccounts,applyChartSettings,systemAccounts,nextAccountCode,accountProblem} from './accounts.mjs?v=coa-2';
 import {attendanceCodes,roles,costTypes,payAccounts,monthDays,monthDates,employedOn,employedIn,validateEmployee,attendanceSummary,leaveTaken,advanceBalance,payrollLine,payrollTotals} from './hr.mjs?v=hr-1';
@@ -13,12 +13,12 @@ import {scrapPayAccounts,scrapSaleTotals,validateScrapSale,averageRate,lastRate,
 import {materials,gauges,matchGauge,thicknessText,inferThickness,dimensionTail} from './gauge.mjs';
 import {areaSqFt,validSize,poWeightKg} from './size.mjs?v=2';
 import {IN,FT,sheetPresets,planLine,sheetLabel,layoutRects,normalizeSheetId,sheetFromId} from './nesting.mjs?v=7';
-import {mountCalculator} from './calculator.mjs?v=6';
+import {mountCalculator} from './calculator.mjs?v=7';
 import {createDeliveryNotePDF} from './dn-pdf.mjs?v=2';
 import {balancesAsAt,natural,movements,accountLedger,profitLoss,previousPeriod,balanceSheet,trialBalance,cashFlow,cashAccounts} from './finance.mjs?v=2';
 import {vendorPayMethods,payableAccounts,payableFor,validateVendorPayment,partyLedger,monthlySummary,ageing,averageDaysToPay,settleBills} from './parties.mjs?v=1';
-import {workflows,guides,glossary,faq,tourSteps} from './help.mjs?v=3';
-import { createQuotePDF } from './quote-pdf.mjs?v=po-1';
+import {workflows,guides,glossary,faq,tourSteps} from './help.mjs?v=5';
+import { createQuotePDF } from './quote-pdf.mjs?v=kg-1';
 import {defaultCompany,nextDocumentNumber,addDays,quoteNumber,pakistanBanks,bankCurrencies,compactIBAN,formatIBAN,ibanProblem,swiftProblem,bankAccountsOf,defaultBankAccount,findBankAccount,bankAccountLabel,bankAccountProblem,paymentTermsOf,validityOptionsOf,daysBetweenDates} from './documents.mjs?v=gr-1';
 import {materialCodes,sheetSizes,categoryLabels,consumableUnits,consumableAccounts,moveLabels,receiptOffsets,qty3,isWhole,unitOf,sheetWeightKg,itemLabel,nextReference,itemCode,validateItem,balances,balanceOf,outValue,validateQuantity,unitCost,offcutValue,suggestedOffset,isPostable,needsReorder,jobMaterialCost,poReceiptStatus,itemFromPOLine,matchStockItem} from './inventory.mjs?v=std-3';
 const $=s=>document.querySelector(s);
@@ -189,9 +189,9 @@ function lineHTML(input){const l=inferThickness(input);return `<div class="linei
  <span class="ml ml-mat" aria-hidden="true">Material</span><select class="linematerial" aria-label="Material"><option value="">Material</option>${Object.entries(materials).map(([k,v])=>`<option value="${k}" ${k===l.material?'selected':''}>${v}</option>`).join('')}</select>
  <span class="ml ml-gau" aria-hidden="true">Gauge</span><select class="linegauge" aria-label="Gauge (US)" ${l.material?'':'disabled'}>${gaugeOptions(l.material,l.thickness_mm,'—')}</select>
  <input class="linemm" type="hidden" aria-label="Thickness in mm" min="0.001" max="500" step="0.001" value="${l.thickness_mm??''}" placeholder="mm">
- <span class="ml ml-area" aria-hidden="true">${lineMode==='po'?'Weight kg':'Area ft²'}</span><output class="linearea" aria-label="${lineMode==='po'?'Weight in kg':'Area in square feet'}"></output>
+ <span class="ml ml-area" aria-hidden="true">${lineMode==='po'?'Weight kg':'Area ft²'}</span>${lineMode==='po'?`<span class="linearea lineweight-cell"><input class="lineweight" type="number" min="0" max="1000000" step="0.01" aria-label="Weight in kg" value="${l.weight_manual&&Number(l.weight_kg)>0?esc(l.weight_kg):''}" data-manual="${l.weight_manual?'1':''}" placeholder="—"><button type="button" class="lineweight-reset" title="Use the calculated weight" aria-label="Use the calculated weight" hidden>↺</button></span>`:'<output class="linearea" aria-label="Area in square feet"></output>'}
  <span class="ml ml-unit" aria-hidden="true">Unit</span><select class="lineunit" aria-label="Unit">${lineUnits.map(u=>`<option ${u===(l.unit||'pcs')?'selected':''}>${u}</option>`).join('')}</select>
- <span class="ml ml-rate" aria-hidden="true">Rate (PKR)</span><input class="linerate" type="number" aria-label="Unit price in PKR" value="${l.rate}" min="0" max="1000000000" step="any" required>
+ <span class="ml ml-rate" aria-hidden="true">Rate (PKR)</span>${lineMode==='po'?`<span class="linerate-cell"><input class="linerate" type="number" aria-label="Rate in PKR" value="${l.rate}" min="0" max="1000000000" step="any" required><select class="linebasis" aria-label="Rate per"><option value="kg" ${poBasis(l)==='kg'?'selected':''}>/kg</option><option value="unit" ${poBasis(l)==='unit'?'selected':''}>/unit</option></select></span>`:`<input class="linerate" type="number" aria-label="Unit price in PKR" value="${l.rate}" min="0" max="1000000000" step="any" required>`}
  ${session?'':`<span class="ml ml-disc" aria-hidden="true">Disc %</span><input class="linediscount" type="number" aria-label="Discount percent" min="0" max="100" step="any" value="${lineDiscount(l)||''}" placeholder="0">`}
  <span class="ml ml-amt" aria-hidden="true">Amount</span><output class="lineamount" aria-label="Line amount"></output>
  <span class="lineactions"><button type="button" class="moveline" title="Move up" aria-label="Move line up">↑</button><button type="button" class="copyline" title="Duplicate line" aria-label="Duplicate line">⧉</button><button type="button" class="removeline" title="Remove line" aria-label="Remove line">×</button></span>
@@ -199,9 +199,12 @@ function lineHTML(input){const l=inferThickness(input);return `<div class="linei
 function lineHeader(){return `<div class="lineitem linehead-row${session?' no-discount':''}" aria-hidden="true"><span>#</span><span>${lineMode==='po'?'Item description · Sheet size':'Item description · W × L (in)'}</span><span class="num">Qty</span><span>Material</span><span>Gauge</span><span class="num">${lineMode==='po'?'Weight kg':'Area ft²'}</span><span>Unit</span><span class="num">Rate (PKR)</span>${session?'':'<span class="num">Disc %</span>'}<span class="num">Amount</span><span></span></div>`}
 // A line with W x L is priced on its total area (ft²); without a size it is priced on the quantity.
 function areaPricing(el){const a=areaSqFt({width_in:el.querySelector('.linew').value,length_in:el.querySelector('.linel').value,quantity:el.querySelector('.lineqty').value});return a?{pricing:'area',area_sqft:a.total}:{pricing:'qty',area_sqft:null}}
-// Purchase orders keep the size in feet, show the sheet weight and are priced Qty x Rate.
-function poLine(l){const {width_in,length_in,...rest}=l,line={...rest,width_ft:width_in,length_ft:length_in,pricing:'qty',area_sqft:null};return {...line,weight_kg:poWeightKg(line)}}
-function readLines(){const rows=$$('.lineitem:not(.linehead-row)');return readLineRows().map((l,i)=>{if(lineMode==='po')return poLine(l);const h=rows[i]?.querySelector('.linesheet');return h&&h.value?{...l,sheet:h.value,sheet_auto:h.dataset.auto==='1'}:l})}
+// Purchase orders keep the size in feet and the sheet weight. The weight is calculated from size, gauge and material,
+// or typed in when the supplier's weight differs. A line priced per kg is Weight x Rate; per unit it is Qty x Rate.
+// Lines saved before per-kg pricing (they have a weight but no basis) stay per unit, so old totals do not change.
+const poBasis=l=>l.rate_basis||('weight_kg' in l?'unit':'kg');
+function poLine(l,el){const {width_in,length_in,...rest}=l,line={...rest,width_ft:width_in,length_ft:length_in,area_sqft:null},calc=poWeightKg(line),wi=el?.querySelector('.lineweight'),typed=wi&&wi.dataset.manual==='1'&&Number(wi.value)>0?Math.round(Number(wi.value)*100)/100:null,manual=el?typed:(l.weight_manual&&Number(l.weight_kg)>0?Number(l.weight_kg):null),weight=manual??calc,basis=el?.querySelector('.linebasis')?.value||poBasis(l);return {...line,weight_kg:weight,weight_calc:calc,weight_manual:manual!=null,rate_basis:basis,pricing:basis==='kg'&&weight>0?'weight':'qty'}}
+function readLines(){const rows=$$('.lineitem:not(.linehead-row)');return readLineRows().map((l,i)=>{if(lineMode==='po')return poLine(l,rows[i]);const h=rows[i]?.querySelector('.linesheet');return h&&h.value?{...l,sheet:h.value,sheet_auto:h.dataset.auto==='1'}:l})}
 function readLineRows(){return $$('.lineitem:not(.linehead-row)').map(el=>({description:el.querySelector('.linedesc').value,quantity:Number(el.querySelector('.lineqty').value),rate:Number(el.querySelector('.linerate').value),material:el.querySelector('.linematerial').value,unit:el.querySelector('.lineunit')?.value||'pcs',thickness_mm:el.querySelector('.linemm').value===''?null:Number(el.querySelector('.linemm').value),gauge:/^\d/.test(el.querySelector('.linegauge').value)?el.querySelector('.linegauge').value:null,width_in:el.querySelector('.linew').value===''?null:Number(el.querySelector('.linew').value),length_in:el.querySelector('.linel').value===''?null:Number(el.querySelector('.linel').value),...areaPricing(el),gauge_standard:'US sheet-metal',...(Number(el.querySelector('.linediscount')?.value)?{discount:Number(el.querySelector('.linediscount').value)}:{})}))}
 function updateGauge(el,origin){const material=el.querySelector('.linematerial'),gauge=el.querySelector('.linegauge'),mm=el.querySelector('.linemm'),desc=el.querySelector('.linedesc');
  if(origin==='gauge'){if(gauges[material.value]?.[gauge.value])mm.value=gauges[material.value][gauge.value];else if(!gauge.value)mm.value='';}
@@ -217,7 +220,7 @@ function updateGauge(el,origin){const material=el.querySelector('.linematerial')
 function calculate(lines,tax){return documentTotals(lines,tax).total}
 function updateTotal(){
  const lines=readLines(),t=documentTotals(lines,Number($('[name=tax]').value));
- $$('.lineitem:not(.linehead-row)').forEach((el,i)=>{el.querySelector('.lineno').textContent=i+1;const l=lines[i];el.querySelector('.lineamount').textContent=Number.isFinite(l.quantity*l.rate)?money(lineCents(l)/100).replace('PKR ',''):'—';const ao=el.querySelector('.linearea');if(lineMode==='po'){const kg=l.weight_kg;ao.textContent=kg!=null?kg.toLocaleString('en-PK',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';ao.title=kg!=null?`${l.width_ft}' × ${l.length_ft}' × ${l.thickness_mm} mm × ${l.quantity} = ${kg} kg (nominal density)`:'Enter W × L in feet, material and gauge to see the weight';return}const a=areaSqFt(l);ao.textContent=a?a.total.toLocaleString('en-PK',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';ao.title=a?`${a.each} ft² per piece × ${l.quantity} = ${a.total} ft². Amount = area × rate.`:'Enter W × L in inches to price by area; otherwise Amount = Qty × Rate.'});
+ $$('.lineitem:not(.linehead-row)').forEach((el,i)=>{el.querySelector('.lineno').textContent=i+1;const l=lines[i];el.querySelector('.lineamount').textContent=Number.isFinite(l.quantity*l.rate)?money(lineCents(l)/100).replace('PKR ',''):'—';const ao=el.querySelector('.linearea');if(lineMode==='po'){const wi=el.querySelector('.lineweight'),rs=el.querySelector('.lineweight-reset'),calc=l.weight_calc;if(!l.weight_manual&&document.activeElement!==wi)wi.value=calc!=null?calc.toFixed(2):'';wi.classList.toggle('manual',!!l.weight_manual);rs.hidden=!(l.weight_manual&&calc!=null&&Math.abs(calc-l.weight_kg)>0.004);const calcText=calc!=null?`Calculated: ${l.width_ft}' × ${l.length_ft}' × ${l.thickness_mm} mm × ${l.quantity} = ${calc} kg (nominal density).`:'Enter the sheet size, material and gauge to calculate the weight.';wi.title=l.weight_manual?`Your weight: ${l.weight_kg} kg. ${calcText} Clear the box or press ↺ to use the calculated weight.`:`${calcText} Type the supplier's weight to change it.`;el.querySelector('.lineamount').title=l.pricing==='weight'?`${l.weight_kg} kg × ${l.rate} per kg`:`${l.quantity} × ${l.rate}`;const b=el.querySelector('.linebasis');if(b)b.title=l.rate_basis==='kg'&&!(l.weight_kg>0)?'Per kg needs a weight: enter the sheet size and gauge, or type the weight.':'';return}const a=areaSqFt(l);ao.textContent=a?a.total.toLocaleString('en-PK',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';ao.title=a?`${a.each} ft² per piece × ${l.quantity} = ${a.total} ft². Amount = area × rate.`:'Enter W × L in inches to price by area; otherwise Amount = Qty × Rate.'});
  $('#t-gross').textContent=money(t.gross);$('#t-disc').textContent=t.discount>0?'− '+money(t.discount):money(0);$('#t-disc-row').hidden=!(t.discount>0);$('#t-tax').textContent=money(t.tax);
  $('#total').textContent=money(t.total);
  if($('#qp-body'))refreshQuotePlan();
@@ -227,6 +230,7 @@ function wireLines(){$$('.lineitem:not(.linehead-row)').forEach(el=>{
  const desc=el.querySelector('.linedesc');desc.title=desc.value;desc.addEventListener('input',()=>{desc.title=desc.value});
  el.querySelector('.linemm').oninput=()=>updateGauge(el,'mm');el.querySelector('.linegauge').onchange=()=>updateGauge(el,'gauge');el.querySelector('.linematerial').onchange=()=>updateGauge(el,'material');
  if(el.querySelector('.linepreset'))el.querySelector('.linepreset').onchange=()=>applyPoSize(el);
+ const wi=el.querySelector('.lineweight');if(wi){wi.oninput=()=>{wi.dataset.manual=wi.value===''?'':'1';updateTotal()};wi.onblur=()=>updateTotal();el.querySelector('.lineweight-reset').onclick=()=>{wi.dataset.manual='';wi.value='';updateTotal()}}
  el.querySelector('.removeline').onclick=()=>{if($$('.lineitem:not(.linehead-row)').length>1){el.remove();updateTotal()}else toast('Keep at least one line item.')};
  el.querySelector('.moveline').onclick=()=>{const prev=el.previousElementSibling;if(prev&&!prev.classList.contains('linehead-row')){prev.before(el);updateTotal()}};
  el.querySelector('.copyline').onclick=()=>{const [line]=readLinesFrom([el]);el.insertAdjacentHTML('afterend',lineHTML(line));wireLines();el.nextElementSibling.querySelector('.linedesc').focus()};
@@ -1622,7 +1626,7 @@ function poReceivingCard(){
 function poReceiveEditor(poId){
  const po=records.find(r=>r.id===poId);if(!po)return;
  const st=poReceiptStatus(po,stockMoves),items=stockItems.filter(i=>i.owner==='Business'&&['sheet','consumable'].includes(i.category)).sort(byCode);
- const lineValue=l=>Math.round(Number(l.quantity)*Number(l.rate)*(100-lineDiscount(l)))/100;
+ const lineValue=l=>lineCents({...l,quantity:Number(l.quantity),rate:Number(l.rate)})/100;
  const row=({index,line,receivedQty,complete})=>{
   if(complete)return `<tr class="grn-done"><td>${index+1}</td><td>${esc(line.description)}</td><td colspan="4"><span class="pill received">In stock</span>${receivedQty?` <span class="fine">${receivedQty} received</span>`:''}</td></tr>`;
   const match=matchStockItem(line,items),proposal=itemFromPOLine(line);
