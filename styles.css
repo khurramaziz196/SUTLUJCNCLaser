@@ -954,3 +954,16 @@ dialog::backdrop{background:rgba(9,27,51,.45);backdrop-filter:blur(4px)}
 .linearea-cell .lineareain.rounded{background:#eef4fb;border-color:#9ab8d8;color:#0c3c6c}
 .linearea-cell .lineareain.manual{background:#fff6ec;border-color:#f2a46a;color:#8a3b12}
 .linearea-reset{border:0;background:none;padding:2px 3px;color:#c2410c;font-size:14px;line-height:1}
+/* Job card sheet plan: Option 1 / Option 2, oversize parts, shared sheets */
+.plan-modes{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin:6px 0 12px}
+.plan-modes .seg{display:inline-flex;gap:4px;background:#eef2f7;border-radius:10px;padding:4px;flex-wrap:wrap}
+.plan-modes .seg button{border:0;background:transparent;padding:8px 14px;border-radius:7px;font-size:13px;color:#4a5870}
+.plan-modes .seg button.on{background:#0c3c6c;color:#fff;box-shadow:0 1px 3px #0b224033}
+.plan-modes select{width:auto;padding:6px 8px}
+.job-plan[data-mode="separate"] .comb-col,.job-plan[data-mode="separate"] .comb-only{display:none}
+.comb-col{text-align:center}.comb-col input{width:18px;height:18px;accent-color:#0c3c6c}
+.plan-stack{display:grid;gap:12px;min-width:0}
+.plan-group{border:1px solid #dfe6ef;border-radius:12px;padding:12px;background:#fbfcfe}
+.plan-group-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:10px}
+.plan-group-head small{color:#5d6b80}
+@media(max-width:700px){.plan-modes .seg{width:100%}.plan-modes .seg button{flex:1}}

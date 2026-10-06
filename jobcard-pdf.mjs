@@ -30,12 +30,25 @@ export async function createJobCardPDF(job, quote, materialRows, logoBytes, PDFL
   y-=Math.ceil(facts.length/2)*17+8;
   if(quote?.description){label('PROJECT',42,y);y-=14;for(const r of wrap(quote.description,511,10)){text(r,42,y);y-=13}y-=6}
   const header=(cols)=>{ensure(40);page.drawRectangle({x:42,y:y-8,width:511,height:24,color:blue});cols.forEach(([t,x,align])=>align==='r'?right(t,x,y,8.5,bold,white):text(t,x,y,8.5,bold,white));y-=28};
-  label('PARTS TO CUT',42,y);y-=22;
+  ensure(80);label('PARTS TO CUT',42,y);y-=22;
   header([['#',50],['PART / DESCRIPTION',70],['MATERIAL & THICKNESS',290],['SIZE W x L (IN)',430],['QTY',545,'r']]);
   lines.forEach((l,i)=>{const size=job.parts?.[i];const g=matchGauge(l.material,l.thickness_mm);const mat=l.thickness_mm?`${materials[l.material]||''} ${g?`${g.gauge} ga`:`${Number(l.thickness_mm)} mm`}`.trim():'-';const desc=wrap(l.description,210,9.5);ensure(desc.length*13+10);desc.forEach((r,j)=>text(r,70,y-j*13,9.5));text(String(i+1),50,y,9.5,regular,muted);text(wrap(mat,135,9)[0],290,y,9);text(context.sheetPlan?.lines?.[i]?.size||(size?.length&&size?.width?`${size.width} x ${size.length} mm`:'-'),430,y,9);right(String(l.quantity),545,y,9.5,bold);y-=desc.length*13+6;rule(y+2);y-=10});
   const plan=context.sheetPlan;
-  if(plan?.lines?.some(p=>p.sheets)){y-=6;label('SHEET PLAN',42,y);y-=22;header([['#',50],['PART',70],['CUT FROM SHEET',260],['PCS / SHEET',440,'r'],['SHEETS',545,'r']]);plan.lines.forEach((p,i)=>{if(!p.sheet)return;ensure(18);text(String(i+1),50,y,9,regular,muted);text(wrap(lines[i]?.description||'',180,9)[0]||'',70,y,9);text(p.sheet,260,y,9);right(p.per,440,y,9);right(p.sheets,545,y,9.5,bold);y-=14;rule(y+4);y-=4});for(const g of plan.groups||[]){ensure(16);text(g,70,y,9.5,bold,blue);y-=14}y-=4}
-  if(materialRows.length){y-=6;label('MATERIAL ISSUED FROM STOCK',42,y);y-=22;header([['MOVEMENT',50],['ITEM',130],['DESCRIPTION',230],['QTY',545,'r']]);for(const r of materialRows){ensure(18);text(r[0],50,y,9);text(r[1],130,y,9);text(wrap(r[2],250,8.5)[0],230,y,8.5,regular,muted);right(r[3],545,y,9);y-=14;rule(y+4);y-=4}}
+  if(plan?.lines?.some(p=>p.sheets)){y-=6;ensure(80);label('SHEET PLAN',42,y);y-=22;header([['#',50],['PART',70],['CUT FROM SHEET',260],['PCS / SHEET',440,'r'],['SHEETS',545,'r']]);plan.lines.forEach((p,i)=>{if(!p.sheet)return;ensure(18);text(String(i+1),50,y,9,regular,muted);text(wrap(lines[i]?.description||'',180,9)[0]||'',70,y,9);text(p.sheet,260,y,9);right(p.per,440,y,9);right(p.sheets,545,y,9.5,bold);y-=14;rule(y+4);y-=4});for(const g of plan.groups||[]){ensure(16);text(g,70,y,9.5,bold,blue);y-=14}y-=4}
+  // Cutting layouts: joint plans for parts cut in pieces, then each sheet to scale with its parts and leftover.
+  const orange=rgb(.85,.33,.06),partFill=rgb(.09,.25,.40);
+  if(plan?.joints?.length||plan?.layouts?.length){y-=8;ensure(60);label('CUTTING LAYOUTS',42,y);y-=16;
+   for(const jt of plan.joints||[]){const s=Math.min(511/jt.along,60/jt.across),h=jt.across*s;ensure(h+46);text(jt.title,42,y,9,bold);y-=11;if(jt.note){text(jt.note,42,y,8,regular,muted);y-=11}y-=4;const top=y;
+    for(const p of jt.pieces){const px=42+p.x*s,py=top-p.y*s-p.w_in*s;page.drawRectangle({x:px,y:py,width:p.l_in*s,height:p.w_in*s,color:partFill,borderColor:white,borderWidth:1});const t=`${p.tag} ${p.l_in} in`,fs=Math.min(8.5,p.w_in*s*0.6);if(fs>=5&&regular.widthOfTextAtSize(t,fs)<p.l_in*s-4)text(t,px+p.l_in*s/2-bold.widthOfTextAtSize(t,fs)/2,py+p.w_in*s/2-fs/3,fs,bold,white)}
+    for(const x of jt.joints||[])page.drawLine({start:{x:42+x*s,y:top+4},end:{x:42+x*s,y:top-h-4},thickness:1.2,color:orange,dashArray:[3,2]});
+    y=top-h-16}
+   for(const lay of plan.layouts||[]){const s=Math.min(511/lay.sl,170/lay.sw),h=lay.sw*s,w=lay.sl*s;const cutLines=wrap(lay.cut||'',511,8);ensure(h+30+cutLines.length*10);text(lay.title,42,y,9,bold);y-=8;const top=y;
+    page.drawRectangle({x:42,y:top-h,width:w,height:h,color:rgb(.99,.93,.87),borderColor:ink,borderWidth:.8});
+    for(const r of lay.rects){const px=42+r.x*s,py=top-r.y*s-r.h*s;page.drawRectangle({x:px,y:py,width:r.w*s,height:r.h*s,color:partFill,borderColor:white,borderWidth:.6});const fs=Math.min(8,r.h*s*0.55,r.w*s*0.5);if(r.label&&fs>=4.5)text(r.label,px+r.w*s/2-bold.widthOfTextAtSize(r.label,fs)/2,py+r.h*s/2-fs/3,fs,bold,white)}
+    if(lay.remnant){const m=lay.remnant,px=42+m.x*s,py=top-m.y*s-m.h*s;page.drawRectangle({x:px,y:py,width:m.w*s,height:m.h*s,borderColor:orange,borderWidth:1,borderDashArray:[3,2]});const fs=Math.min(7.5,m.h*s*0.4);if(fs>=4.5&&regular.widthOfTextAtSize(m.text,fs)<m.w*s-4)text(m.text,px+m.w*s/2-regular.widthOfTextAtSize(m.text,fs)/2,py+m.h*s/2-fs/3,fs,bold,orange)}
+    y=top-h-11;for(const c of cutLines){text(c,42,y,8,regular,muted);y-=10}y-=8}
+  }
+  if(materialRows.length){y-=6;ensure(70);label('MATERIAL ISSUED FROM STOCK',42,y);y-=22;header([['MOVEMENT',50],['ITEM',130],['DESCRIPTION',230],['QTY',545,'r']]);for(const r of materialRows){ensure(18);text(r[0],50,y,9);text(r[1],130,y,9);text(wrap(r[2],250,8.5)[0],230,y,8.5,regular,muted);right(r[3],545,y,9);y-=14;rule(y+4);y-=4}}
   if(String(job.material_used||'').trim()){y-=8;ensure(40);label(materialRows.length?'MATERIAL NOTES':'MATERIAL',42,y);y-=14;for(const r of wrap(job.material_used,511,9.5)){ensure(13);text(r,42,y,9.5);y-=13}}
   if(String(job.notes||'').trim()){y-=8;ensure(40);label('INSTRUCTIONS',42,y);y-=14;for(const r of wrap(job.notes,511,9.5)){ensure(13);text(r,42,y,9.5);y-=13}}
   y-=12;ensure(70+(context.stages?.length||5)*24);label('SCOPE OF WORK - SIGN-OFF',42,y);y-=22;
