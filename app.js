@@ -2286,25 +2286,39 @@ function jobScrapNote(j){const moves=stockMoves.filter(m=>m.job_id===j.id&&m.typ
 // bank accounts and quotation terms stay; customers, vendors, employees and stock items can be kept.
 function resetCard(){
  const counts=[['quotes',records.filter(r=>r.kind==='quote').length],['work orders',workOrders.length],['invoices',invoices.length],['stock movements',stockMoves.length],['journal entries',journals.length]].filter(([,n])=>n).map(([k,n])=>`${n} ${k}`).join(', ');
- return `<section class="card danger-zone"><div class="cardhead"><div><h2>Start fresh</h2><p class="sub" style="margin-top:6px">Delete the entries in this browser to start testing or working from a clean workspace.</p></div></div><div class="cardbody"><form id="reset-form">
- <p>Deletes every transaction: enquiries, quotes, purchase orders, expenses, petty cash, work orders, invoices, payments, journals, stock movements, attendance, advances, payroll and scrap sales${counts?` (currently ${counts}, and more)`:''}. Numbering starts again from 1.</p>
- <div class="reset-keep"><label class="check"><input type="checkbox" name="keep_parties" checked> Keep customers and vendors (${customers.length+vendors.length})</label><label class="check"><input type="checkbox" name="keep_employees" checked> Keep employees (${employees.length})</label><label class="check"><input type="checkbox" name="keep_items" checked> Keep the stock item list, with all quantities at zero (${stockItems.filter(i=>['sheet','consumable'].includes(i.category)).length})</label></div>
- <p class="help">Company details, bank accounts and quotation terms are always kept. A backup file of everything is downloaded first, so you can recover it. Cloud (Supabase) data is not affected.</p>
- <div class="formgrid"><label class="field">Type DELETE to confirm<input name="confirm" autocomplete="off" placeholder="DELETE"></label></div>
- <div id="reset-error" class="error" role="alert"></div><div class="actions" style="justify-content:flex-start"><button type="submit" class="delete-confirm">Back up and delete entries</button></div></form></div></section>`;
+ const inCloud=!!cloud;
+ return `<section class="card danger-zone" id="reset-card"><div class="cardhead"><div><h2>Delete app data</h2><p class="sub" style="margin-top:6px">${inCloud?'Clear the shared cloud workspace to start testing or working from a clean slate. This affects every signed-in user.':'Delete the entries in this browser to start testing or working from a clean workspace.'}</p></div>${inCloud?badge('Admin only'):''}</div><div class="cardbody"><form id="reset-form">
+ <p>Deletes every transaction: enquiries, quotes, purchase orders, expenses, petty cash, work orders, invoices, payments, journals, stock movements, attendance, advances, payroll, scrap sales and delivery notes${counts?` (currently ${counts}, and more)`:''}. Numbering starts again from 1.</p>
+ <div class="reset-keep"><label class="check"><input type="checkbox" name="keep_parties" checked> Keep customers and vendors (${customers.length+vendors.length})</label><label class="check"><input type="checkbox" name="keep_employees" checked> Keep employees (${employees.length})</label><label class="check"><input type="checkbox" name="keep_items" checked> Keep the stock item list, with all quantities at zero (${stockItems.filter(i=>['sheet','consumable'].includes(i.category)).length})</label><label class="check"><input type="checkbox" name="reset_company"> Also reset company details, bank accounts, quotation terms, stamp and chart of accounts settings to the defaults</label></div>
+ <p class="help">A backup file of everything is downloaded first, so you can restore it from <b>Restore from backup</b>.${inCloud?' User accounts are not deleted; manage them under Users. Other signed-in screens update within about 30 seconds.':''}</p>
+ <div class="formgrid"><label class="field">Type DELETE to confirm<input name="confirm" autocomplete="off" placeholder="DELETE"></label>${inCloud?field('Your Admin password','password','','password','autocomplete="current-password"'):''}</div>
+ <div id="reset-error" class="error" role="alert"></div><div class="actions" style="justify-content:flex-start"><button type="submit" class="delete-confirm" id="reset-submit">Back up and delete${inCloud?' for everyone':' entries'}</button></div></form></div></section>`;
 }
+
 function bindReset(){
- $('#reset-form').onsubmit=e=>{e.preventDefault();const f=e.target.elements;
-  if(f.confirm.value.trim()!=='DELETE'){$('#reset-error').textContent='Type DELETE (in capitals) to confirm.';f.confirm.focus();return}
+ $('#reset-form').onsubmit=async e=>{e.preventDefault();const f=e.target.elements,err=$('#reset-error'),btn=$('#reset-submit');err.textContent='';
+  if(f.confirm.value.trim()!=='DELETE'){err.textContent='Type DELETE (in capitals) to confirm.';f.confirm.focus();return}
+  if(cloud){
+   if(cloudRole()!=='admin'){err.textContent='Only an Admin can delete app data.';return}
+   if(!f.password.value){err.textContent='Enter your Admin password.';f.password.focus();return}
+   btn.disabled=true;btn.textContent='Checking password…';
+   try{const check=createCloudSync({url:config.url,key:config.key,collections:workspaceCollections});await check.signIn(cloud.session.user.email,f.password.value)}
+   catch{err.textContent='Wrong password. Nothing was deleted.';btn.disabled=false;btn.textContent='Back up and delete for everyone';f.password.select();return}
+  }
   exportWorkspaceBackup();
-  const keepParties=f.keep_parties.checked,keepEmployees=f.keep_employees.checked,keepItems=f.keep_items.checked;
+  const keepParties=f.keep_parties.checked,keepEmployees=f.keep_employees.checked,keepItems=f.keep_items.checked,resetCompany=f.reset_company.checked;
   records=[];invoices=[];payments=[];workOrders=[];journals=[];stockMoves=[];attendance=[];advances=[];payrolls=[];scrapSales=[];vendorPayments=[];stockTakes=[];deliveryNotes=[];
   if(!keepParties){customers=[];vendors=[]}
   if(!keepEmployees)employees=[];
   // remnants and scrap bins are physical pieces and weights, so only sheet and consumable definitions are kept
   stockItems=keepItems?stockItems.filter(i=>['sheet','consumable'].includes(i.category)):[];
+  if(resetCompany){company={...defaultCompany};applyChartSettings(company.coa||{});try{localStorage.setItem('sutluj-company',JSON.stringify(company))}catch{}}
   try{localStorage.removeItem('sutluj-last-quote-number')}catch{}
-  jobView=null;page='overview';render();toast('Workspace cleared. A backup of the previous entries was downloaded.');
+  jobView=null;page='overview';
+  if(!cloud){render();toast('Workspace cleared. A backup of the previous entries was downloaded.');return}
+  render();toast('Deleting from the cloud…');
+  clearTimeout(cloudTimer);await runCloudSync({pull:false});
+  toast(cloudPending()?'Deleted here; some changes are still being sent to the cloud. Keep this tab open until it shows "Cloud synced".':'App data deleted for everyone. A backup was downloaded first.');
  };
 }
 
