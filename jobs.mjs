@@ -135,3 +135,15 @@ export function cellFromCount(prev, done, qty, today) {
  return {status, progress: Math.round(n / q * 100), done_qty: n, done_at: status === 'Done' ? (prev?.done_at || today) : ''};
 }
 export function piecesDone(cell, qty) { const q = Math.ceil(Number(qty) || 1); return cell.done_qty != null ? cell.done_qty : cell.status === 'Done' ? q : cell.status === 'In progress' ? Math.round((Number(cell.progress) || 0) * q / 100) : 0; }
+
+// One-click completion: every task on a line becomes Done (all pieces counted where pieces are tracked).
+// Tasks marked Not required stay N/A. Earlier completion dates are kept. lines is the materialized scope_lines.
+export function completeLine(scope, lines, li, qty, today) {
+ const row = {...(lines[li] || {})};
+ for (const t of scope) {
+  const c = row[t.id] || {status: 'Pending', progress: 0, done_at: ''};
+  if (c.status === 'Not required') continue;
+  row[t.id] = countsPieces(t, qty) ? cellFromCount(c, Math.ceil(Number(qty) || 1), qty, today) : {status: 'Done', progress: 100, done_at: c.status === 'Done' && c.done_at ? c.done_at : today, done_qty: null};
+ }
+ return {...lines, [li]: row};
+}
