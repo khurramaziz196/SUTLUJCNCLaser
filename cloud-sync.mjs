@@ -20,7 +20,7 @@ export function createCloudSync({url, key: apikey, collections, fetchImpl = (...
     try { body = text ? JSON.parse(text) : null } catch { throw Error('The cloud returned an unreadable response. Please retry.') }
     if (res.status === 401 && retry) { await refresh(); return call(path, opts, false) }
     if (!res.ok) {
-      const msg = body?.message || body?.msg || body?.error_description || `Cloud request failed (${res.status}).`;
+      const msg = body?.error || body?.message || body?.msg || body?.error_description || `Cloud request failed (${res.status}).`;
       if (/workspace_docs|workspace_push/.test(msg) && /not find|does not exist|schema cache/i.test(msg)) throw Error('The cloud database is not set up yet. Run supabase/workspace-sync.sql in the Supabase SQL Editor, then sign in again.');
       throw Error(msg);
     }
@@ -29,7 +29,7 @@ export function createCloudSync({url, key: apikey, collections, fetchImpl = (...
   async function authRequest(grant, payload) {
     const res = await fetchImpl(`${url}/auth/v1/token?grant_type=${grant}`, {method: 'POST', headers: {apikey, 'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw Error(body.error_description || body.msg || body.message || 'Sign-in failed. Check the email and password.');
+    if (!res.ok) { const m = body.error_description || body.msg || body.message || ''; throw Error(/banned/i.test(m) ? 'This account has been disabled. Ask an Admin to enable it.' : /invalid login/i.test(m) ? 'Wrong email or password.' : m || 'Sign-in failed. Check the email and password.') }
     session = {access_token: body.access_token, refresh_token: body.refresh_token, expires_at: now() + body.expires_in * 1000, user: {id: body.user?.id, email: body.user?.email}};
     onAuth(session); return session;
   }
@@ -40,12 +40,13 @@ export function createCloudSync({url, key: apikey, collections, fetchImpl = (...
     return refreshing;
   }
 
-  const remember = row => { known.set(key(row.collection, row.id), {version: Number(row.version), json: row.deleted ? null : JSON.stringify(row.data), deleted: !!row.deleted}); if (row.updated_at && (!lastPull || row.updated_at > lastPull)) lastPull = row.updated_at };
+  const meta = new Map();            // col|id -> {by, at} for 'last changed by'
+  const remember = row => { known.set(key(row.collection, row.id), {version: Number(row.version), json: row.deleted ? null : JSON.stringify(row.data), deleted: !!row.deleted}); if (row.updated_at) meta.set(key(row.collection, row.id), {by: row.updated_by || null, at: row.updated_at}); if (row.updated_at && (!lastPull || row.updated_at > lastPull)) lastPull = row.updated_at };
 
   async function fetchRows(filter) {
     const rows = [];
     for (let offset = 0; ; offset += 1000) {
-      const batch = await call(`/rest/v1/workspace_docs?select=collection,id,data,deleted,version,updated_at${filter}&order=updated_at.asc,collection.asc,id.asc&offset=${offset}&limit=1000`);
+      const batch = await call(`/rest/v1/workspace_docs?select=collection,id,data,deleted,version,updated_at,updated_by${filter}&order=updated_at.asc,collection.asc,id.asc&offset=${offset}&limit=1000`);
       rows.push(...batch); if (batch.length < 1000) return rows;
     }
   }
@@ -156,6 +157,15 @@ export function createCloudSync({url, key: apikey, collections, fetchImpl = (...
     // Full load: the workspace as stored in the cloud, and whether the cloud is still empty.
     async load() { known.clear(); lastPull = null; const rows = await fetchRows(''); rows.forEach(remember); const live = rows.filter(r => !r.deleted); return {...assemble(rows), empty: !live.some(r => r.collection !== ORDER && r.collection !== SETTINGS), hasSettings: live.some(r => r.collection === SETTINGS)} },
     syncNow, pendingCount, diff,
+    // Who am I in the shared workspace? {active, role, modules, name, email, workspace_id} or null.
+    me: () => call('/rest/v1/rpc/workspace_me', {method: 'POST', body: '{}'}),
+    members: () => call('/rest/v1/workspace_members?select=user_id,email,name,role,modules,active,created_at,last_seen_at&order=name.asc,email.asc'),
+    activity: () => call('/rest/v1/rpc/workspace_activity', {method: 'POST', body: '{}'}),
+    // Admin user management (Edge Function manage-users).
+    manageUsers: body => call('/functions/v1/manage-users', {method: 'POST', body: JSON.stringify(body)}),
+    changedBy: (col, id) => meta.get(key(col, id)) || null,
+    // The workspace exactly as last synced (used to undo edits a view-only account cannot save).
+    snapshot() { const rows = [...known].filter(([, v]) => !v.deleted && v.json).map(([k, v]) => { const [collection, id] = k.split('\u0000'); return {collection, id, data: JSON.parse(v.json), deleted: false} }); return assemble(rows) },
     get busy() { return !!busy }
   };
 }
