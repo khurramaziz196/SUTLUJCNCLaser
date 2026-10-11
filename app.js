@@ -42,6 +42,8 @@ if(!config?.url||!config?.key)config={url:'https://uxjctefrkkscwwctkmqq.supabase
 let cloud=null,cloudInfo={error:'',lastSync:null,offline:false,uploading:0,signOutArmed:false},cloudTimer=null;
 const cloudSessionKey='gr-cloud-session',localCompanyKey='gr-local-company';
 let cloudMember=null,cloudMembers=null,cloudActivity={};
+// Login screen shown over the app until someone signs in (mode: login | checking | offline).
+let gateInfo={mode:'login',message:'',error:'',email:''};
 let company;try{company={...defaultCompany,...JSON.parse(localStorage.getItem('sutluj-company')||'{}')}}catch{company={...defaultCompany}}
 // Rebrand: company details saved under the old name (name, terms, stamp text, …) switch to GR Synergy Ventures once.
 if(JSON.stringify(company).includes('Sutluj CNC Laser')){company=JSON.parse(JSON.stringify(company).replace(/Sutluj CNC Laser/g,'GR Synergy Ventures').replace(/SUTLUJ CNC LASER/g,'GR SYNERGY VENTURES'));try{localStorage.setItem('sutluj-company',JSON.stringify(company))}catch{}}
@@ -67,7 +69,7 @@ let statementFrom=today().slice(0,4)+'-01-01',statementTo=today();
 function toast(s){if(cloud&&typeof s==='string')s=s.replace(/saved locally in this browser/gi,'saved to the cloud').replace(/ locally in this browser/gi,' to the cloud').replace(/saved locally/gi,'saved to the cloud');$('#toast').textContent=localSaveError&&!session&&!cloud?localSaveError:s;$('#toast').style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').style.display='none',4500)}
 function navigate(p){if(!canSee(p)){toast(`Your account does not have access to ${pageName(p)}. Ask an Admin.`);p='overview'}if(p!=='help')helpTopic='';else if(page!=='help')helpReturn=page;page=p;jobView=null;partyView=null;takeView=null;partyTab='overview';query='';filter='All';tab=p==='procurement'?'purchase':p==='accounts'?'dash':'quote';render()}
 const badge=s=>`<span class="pill ${esc(s.toLowerCase())}">${esc(s)}</span>`;
-function render(){if(!canSee(page))page='overview';saveLocalWorkspace();document.title='GR Synergy Ventures · Business workspace';$('#app').innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand company-brand"><img class="company-logo" src="sutluj-logo.jpg?v=gr-3" alt="GR Synergy Ventures"></div><div class="navlabel">WORKSPACE</div><nav class="nav" aria-label="Main navigation">${sidebarNavigation()}</nav><button class="sidefoot help-foot ${page==='help'?'active':''}" data-help-open><span class="help-ico">?</span><span><b>Help &amp; tutorials</b><small>${setupProgress().done<setupProgress().total?`Setup ${setupProgress().done} of ${setupProgress().total} done`:'Guides, workflows, tour'}</small></span><span class="help-arrow">›</span></button></aside><div><header class="topbar"><div class="crumb">Workspace &nbsp; / &nbsp; <b>${esc(pageName(page))}</b></div><div class="right"><button class="help-btn" data-help-open title="Help for this page" aria-label="Help for this page">?</button><button class="connection" data-nav="settings">${cloudLabel()}</button><span class="fine">${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span><div class="avatar">GR</div></div></header><main class="content">${cloudNotice()}${!session&&!cloud&&localSaveError?`<div class="notice" role="alert"><span>${esc(localSaveError)}</span><button data-backup>Export backup</button></div>`:''}${page==='help'?helpPage():page==='settings'?settings():page==='customers'||page==='vendors'?partyPage(page):page==='overview'?overview():listing()}<div class="footer"><span>GR Synergy Ventures · Business management</span><span>${cloud?cloudFooter():connected?`Last synced ${lastSync?.toLocaleTimeString()||''} · refreshes every 30 seconds`:(localSaveError?'Local saving needs attention':'Saved locally in this browser')}</span></div></main></div></div>${tourCard()}`;
+function render(){if(!cloud){renderGate();return}if(!canSee(page))page='overview';saveLocalWorkspace();document.title='GR Synergy Ventures · Business workspace';$('#app').innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand company-brand"><img class="company-logo" src="sutluj-logo.jpg?v=gr-3" alt="GR Synergy Ventures"></div><div class="navlabel">WORKSPACE</div><nav class="nav" aria-label="Main navigation">${sidebarNavigation()}</nav><button class="sidefoot help-foot ${page==='help'?'active':''}" data-help-open><span class="help-ico">?</span><span><b>Help &amp; tutorials</b><small>${setupProgress().done<setupProgress().total?`Setup ${setupProgress().done} of ${setupProgress().total} done`:'Guides, workflows, tour'}</small></span><span class="help-arrow">›</span></button></aside><div><header class="topbar"><div class="crumb">Workspace &nbsp; / &nbsp; <b>${esc(pageName(page))}</b></div><div class="right"><button class="help-btn" data-help-open title="Help for this page" aria-label="Help for this page">?</button><button class="connection" data-nav="settings">${cloudLabel()}</button><span class="fine">${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span><div class="avatar">GR</div></div></header><main class="content">${cloudNotice()}${!session&&!cloud&&localSaveError?`<div class="notice" role="alert"><span>${esc(localSaveError)}</span><button data-backup>Export backup</button></div>`:''}${page==='help'?helpPage():page==='settings'?settings():page==='customers'||page==='vendors'?partyPage(page):page==='overview'?overview():listing()}<div class="footer"><span>GR Synergy Ventures · Business management</span><span>${cloud?cloudFooter():connected?`Last synced ${lastSync?.toLocaleTimeString()||''} · refreshes every 30 seconds`:(localSaveError?'Local saving needs attention':'Saved locally in this browser')}</span></div></main></div></div>${tourCard()}`;
 $$('[data-nav]').forEach(b=>b.onclick=()=>navigate(b.dataset.nav));if($('#open-calc'))$('#open-calc').onclick=()=>openSheetCalculator(false);$$('[data-new]').forEach(b=>b.onclick=()=>editor(b.dataset.new));$$('[data-edit]').forEach(b=>b.onclick=()=>editor(records.find(r=>r.id===b.dataset.edit)?.kind,b.dataset.edit));$$('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;query='';filter='All';render()});if($('#search'))$('#search').oninput=e=>{query=e.target.value;updateTable()};if($('#filter'))$('#filter').onchange=e=>{filter=e.target.value;updateTable()};if($('#export'))$('#export').onclick=exportCSV;if($('#refresh'))$('#refresh').onclick=()=>sync(true);bindRecordDeletes();bindQuoteRows();bindInvoices();bindWorkOrders();bindAccounting();bindAccountsPro();if(page==='overview')bindOverview();if(page==='deliveries'||page==='workorders')bindDeliveries();if(page==='inventory')bindInventory();if(page==='hr')bindHR();$$('[data-backup]').forEach(b=>b.onclick=exportWorkspaceBackup);if(page==='settings')bindSettings();if(page==='accounts'&&tab==='chart')bindChart();if(page==='customers'||page==='vendors')bindParties(page);bindHelp();}
 const $$=s=>Array.from(document.querySelectorAll(s));
 function notice(){return session?'':`<div class="notice"><span><b>Local workspace</b> &nbsp; Saved records stay in this browser after refresh. Back up regularly from Settings.</span><button data-nav="settings">Connect Supabase ↗</button></div>`}
@@ -2399,6 +2401,7 @@ try{new BroadcastChannel('gr-sheet-calc').onmessage=e=>{if(e.data?.type==='apply
 // Start the app last, once every helper in this file is defined (helpers declared with const are
 // not usable before their line runs, and the first page can call any of them).
 restoreLocalWorkspace();
+if(savedCloudSession())gateInfo.mode='checking';
 render();
 resumeCloud();
 
@@ -2459,11 +2462,11 @@ function leaveCloud(){
  restoreLocalWorkspace();jobView=null;
 }
 async function resumeCloud(){
- const saved=savedCloudSession();if(!saved||!config?.url||!config?.key)return;
- try{validateConfig(config.url,config.key)}catch{return}
+ const saved=savedCloudSession();if(!saved||!config?.url||!config?.key){if(gateInfo.mode==='checking'){gateInfo.mode='login';render()}return}
+ try{validateConfig(config.url,config.key)}catch{gateInfo.mode='login';render();return}
  const client=newCloudClient(saved);
- try{toast('Loading your cloud workspace…');const member=await checkMembership(client);const loaded=await client.load();cloud=client;cloudMember=member;enterCloud(loaded);page=page||'overview';render();loadMembers();toast('Cloud workspace loaded.')}
- catch(err){if(err.noAccess){try{await client.signOut()}catch{}storeCloudSession(null);toast(err.message);return}if(!client.session){storeCloudSession(null);toast('Your cloud sign-in expired. Sign in again in Settings.');return}cloudInfo.offline=true;cloudInfo.offlineError=err.message;render()}
+ try{const member=await checkMembership(client);const loaded=await client.load();cloud=client;cloudMember=member;enterCloud(loaded);page=page||'overview';gateInfo={mode:'login',message:'',error:'',email:''};render();loadMembers();toast(`Welcome back${member.name?', '+member.name.split(' ')[0]:''}.`)}
+ catch(err){if(err.noAccess){try{await client.signOut()}catch{}storeCloudSession(null);gateInfo={mode:'login',message:'',error:err.message,email:saved.user?.email||''};render();return}if(!client.session){storeCloudSession(null);gateInfo={mode:'login',message:'Your session has ended. Please sign in again.',error:'',email:saved.user?.email||''};render();return}gateInfo={mode:'offline',message:'',error:err.message||'The server could not be reached.',email:saved.user?.email||''};render()}
 }
 function cloudCounts(d){const n=k=>d[k]?.length||0;return [['quotes & other records',n('records')],['customers',n('customers')],['vendors',n('vendors')],['jobs',n('workOrders')],['invoices',n('invoices')],['stock items',n('stockItems')],['stock movements',n('stockMoves')],['employees',n('employees')],['journal entries',n('journals')]].filter(([,v])=>v).map(([k,v])=>`${v} ${k}`).join(', ')}
 function cloudCards(){
@@ -2479,7 +2482,7 @@ function bindCloud(){
  if($('#cloud-signout'))$('#cloud-signout').onclick=async()=>{
   const b=$('#cloud-signout');b.disabled=true;
   if(cloudPending()&&!cloudInfo.signOutArmed){await runCloudSync({pull:false});if(cloudPending()){cloudInfo.signOutArmed=true;render();toast('Some changes have not reached the cloud yet. Export a backup, or press Sign out again to discard them.');return}}
-  const c=cloud;leaveCloud();try{await c.signOut()}catch{}render();toast('Signed out. This browser\'s local workspace is back.');
+  const c=cloud,email=c.session?.user?.email||'';leaveCloud();try{await c.signOut()}catch{}gateInfo={mode:'login',message:'You have signed out.',error:'',email};render();
  };
  if($('#cloud-login'))$('#cloud-login').onsubmit=async e=>{
   e.preventDefault();const f=e.target.elements,btn=e.target.querySelector('button'),err=$('#cloud-login-error');err.textContent='';btn.disabled=true;btn.textContent='Signing in…';
@@ -2500,7 +2503,7 @@ function chooseFirstUpload(client,loaded){
  const d=workspaceData(),summary=cloudCounts(d)||'no entries',dialog=$('#delete-modal');
  dialog.innerHTML=`<div class="modalhead"><h2 id="delete-title">Your cloud workspace is empty</h2></div><form id="cloud-first"><p>Upload this browser's workspace so you can use it from anywhere?</p><p><b>${esc(summary)}</b>${hasLocal?'':' <span class="help">(these are the built-in sample entries)</span>'}, plus your company details, bank accounts, terms and stamp.</p><p class="help">A backup file is downloaded first. Your local copy stays in this browser.</p><div id="cloud-first-error" class="error" role="alert"></div><div class="actions"><button type="button" id="cloud-first-cancel">Cancel</button><button type="button" id="cloud-first-empty">Start empty</button><button type="submit" class="primary" id="cloud-first-upload">${hasLocal?'Back up and upload':'Upload sample entries'}</button></div></form>`;
  dialog.showModal();
- $('#cloud-first-cancel').onclick=async()=>{dialog.close();try{await client.signOut()}catch{}storeCloudSession(null);toast('Not signed in. Nothing was uploaded.')};
+ $('#cloud-first-cancel').onclick=async()=>{dialog.close();try{await client.signOut()}catch{}storeCloudSession(null);cloudMember=null;gateInfo={mode:'login',message:'Not signed in. Nothing was uploaded.',error:'',email:''};render()};
  const start=async upload=>{
   $$('#cloud-first button').forEach(b=>b.disabled=true);$('#cloud-first-error').textContent='';
   try{
@@ -2551,7 +2554,7 @@ async function loadMembers(){
   const [list,act]=await Promise.all([cloud.members(),['admin','manager'].includes(cloudRole())?cloud.activity():Promise.resolve([])]);
   cloudMembers=list;cloudActivity=Object.fromEntries((act||[]).map(a=>[a.user_id,a]));
   const me=list.find(m=>m.user_id===cloud.session?.user?.id);
-  if(!me||!me.active){toast('Your account has been disabled by an Admin.');const c=cloud;leaveCloud();try{await c.signOut()}catch{}render();return}
+  if(!me||!me.active){const c=cloud;leaveCloud();try{await c.signOut()}catch{}gateInfo={mode:'login',message:'',error:'Your account has been disabled by an Admin.',email:''};render();return}
   if(me&&cloudMember&&(me.role!==cloudMember.role||JSON.stringify(me.modules)!==JSON.stringify(cloudMember.modules)||!me.active)){
    if(!me.active){toast('Your account has been disabled by an Admin.');const c=cloud;leaveCloud();try{await c.signOut()}catch{}render();return}
    cloudMember={...cloudMember,role:me.role,modules:me.modules,name:me.name};toast(`Your access changed: ${roleLabel(me.role)}.`);refreshView();return;
@@ -2595,4 +2598,79 @@ function bindUsers(){
   $('#pw-new').onclick=()=>{form.elements.password.value=genPassword()};
   form.onsubmit=e=>{e.preventDefault();run(form,{action:'password',user_id:m.user_id,password:form.elements.password.value},`Password changed for ${m.name||m.email}. Share it with them.`)};
  });
+}
+
+
+// ── Login screen ───────────────────────────────────────────────────────────────────────────────────────
+// Shown full-screen whenever nobody is signed in: the app and its records stay hidden until sign-in.
+function renderGate(){
+ document.title='Sign in · GR Synergy Ventures';
+ const g=gateInfo,checking=g.mode==='checking',offline=g.mode==='offline';
+ const year=new Date().getFullYear();
+ $('#app').innerHTML=`<div class="gate" role="main">
+ <section class="gate-brand" aria-hidden="true">
+  <div class="gate-beam"><i></i><b></b></div>
+  <div class="gate-brand-inner">
+   <div class="gate-kicker">CNC LASER CUTTING · BUSINESS WORKSPACE</div>
+   <h2>Every job, from quote to cut to cash.</h2>
+   <ul class="gate-points">
+    <li><span>01</span>Quotes, work orders and delivery notes in one place</li>
+    <li><span>02</span>Sheet stock, nesting and scrap tracked per job</li>
+    <li><span>03</span>Invoices, payments, payroll and accounts kept in step</li>
+   </ul>
+   <p class="gate-foot">Your team signs in with their own account. Each person sees only the modules an Admin gives them.</p>
+  </div>
+ </section>
+ <section class="gate-panel">
+  <div class="gate-card">
+   <img class="gate-logo" src="sutluj-logo.jpg?v=gr-3" alt="GR Synergy Ventures">
+   ${checking?`<div class="gate-checking" role="status"><span class="gate-spinner"></span><div><b>Signing you in…</b><small>Loading your workspace securely</small></div></div>`:`
+   <h1>${offline?'Can’t reach the server':'Sign in'}</h1>
+   <p class="gate-sub">${offline?'Check your internet connection, then try again. Your data is safe in the cloud.':'Welcome back. Use the email and password your Admin gave you.'}</p>
+   ${g.message?`<div class="gate-msg" role="status">${esc(g.message)}</div>`:''}
+   ${offline?`<div class="gate-err" role="alert">${esc(g.error)}</div><button class="gate-btn" id="gate-retry" type="button">Try again</button><button class="gate-link" id="gate-other" type="button">Sign in with a different account</button>`:`
+   <form id="gate-form" novalidate>
+    <label class="gate-field"><span>Email</span><input name="email" type="email" autocomplete="username" inputmode="email" required value="${esc(g.email)}" placeholder="you@company.com"></label>
+    <label class="gate-field"><span>Password</span><div class="gate-pass"><input name="password" type="password" autocomplete="current-password" required placeholder="Your password"><button type="button" id="gate-eye" aria-label="Show password" aria-pressed="false">Show</button></div><small class="gate-caps" id="gate-caps" hidden>Caps Lock is on</small></label>
+    <div class="gate-row"><label class="gate-check"><input type="checkbox" name="keep" ${cloudInfo.keep===false?'':'checked'}> Keep me signed in</label><button type="button" class="gate-link" id="gate-forgot">Forgot password?</button></div>
+    <div class="gate-err" id="gate-error" role="alert">${esc(g.error)}</div>
+    <button class="gate-btn" type="submit" id="gate-submit"><span>Sign in</span></button>
+    <p class="gate-help" id="gate-help" hidden>Ask an Admin to reset it: <b>Settings → Users → Reset password</b>. For security, passwords are never sent by email.</p>
+   </form>`}
+   <details class="gate-advanced"><summary>Connection settings</summary><form id="gate-conn"><label class="gate-field"><span>Project URL</span><input name="url" type="url" value="${esc(config.url||'')}" required></label><label class="gate-field"><span>Publishable key</span><input name="key" type="password" value="${esc(config.key||'')}" required autocomplete="off"></label><div class="gate-err" id="gate-conn-error" role="alert"></div><button class="gate-link" type="submit">Save connection</button></form></details>`}
+  </div>
+  <p class="gate-legal">© ${year} GR Synergy Ventures · Secure sign-in</p>
+ </section>
+</div>`;
+ bindGate();
+}
+function bindGate(){
+ const form=$('#gate-form');
+ if($('#gate-retry'))$('#gate-retry').onclick=()=>{gateInfo.mode='checking';render();resumeCloud()};
+ if($('#gate-other'))$('#gate-other').onclick=()=>{storeCloudSession(null);gateInfo={mode:'login',message:'',error:'',email:''};render()};
+ if($('#gate-conn'))$('#gate-conn').onsubmit=e=>{e.preventDefault();try{const f=new FormData(e.target);config=validateConfig(String(f.get('url')).trim(),String(f.get('key')).trim());localStorage.setItem('sutluj-connection',JSON.stringify(config));$('#gate-conn-error').textContent='';e.target.closest('details').open=false;gateInfo.message='Connection settings saved.';render()}catch(err){$('#gate-conn-error').textContent=err.message}};
+ if(!form)return;
+ const email=form.elements.email,pass=form.elements.password,err=$('#gate-error');
+ (email.value?pass:email).focus();
+ $('#gate-eye').onclick=()=>{const show=pass.type==='password';pass.type=show?'text':'password';$('#gate-eye').textContent=show?'Hide':'Show';$('#gate-eye').setAttribute('aria-pressed',String(show));$('#gate-eye').setAttribute('aria-label',show?'Hide password':'Show password');pass.focus()};
+ pass.onkeyup=pass.onkeydown=e=>{if(e.getModifierState)$('#gate-caps').hidden=!e.getModifierState('CapsLock')};
+ $('#gate-forgot').onclick=()=>{$('#gate-help').hidden=!$('#gate-help').hidden};
+ form.onsubmit=async e=>{
+  e.preventDefault();err.textContent='';gateInfo.message='';
+  const em=email.value.trim(),pw=pass.value;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){err.textContent='Enter your email address.';email.focus();return}
+  if(!pw){err.textContent='Enter your password.';pass.focus();return}
+  const btn=$('#gate-submit');btn.disabled=true;btn.classList.add('busy');btn.querySelector('span').textContent='Signing in…';
+  try{
+   validateConfig(config.url,config.key);
+   cloudInfo.keep=form.elements.keep.checked;const client=newCloudClient(null);
+   await client.signIn(em,pw);
+   let member;try{member=await checkMembership(client)}catch(x){if(x.noAccess){try{await client.signOut()}catch{}storeCloudSession(null)}throw x}
+   const loaded=await client.load();
+   gateInfo={mode:'login',message:'',error:'',email:em};
+   if(!loaded.empty||member.role!=='admin'){cloud=client;cloudMember=member;enterCloud(loaded);page='overview';render();loadMembers();toast(`Welcome${member.name?', '+member.name.split(' ')[0]:''}. Signed in as ${roleLabel(member.role)}.`);return}
+   cloudMember=member;chooseFirstUpload(client,loaded);
+  }catch(x){err.textContent=x.message||'Could not sign in.';pass.select()}
+  finally{if($('#gate-submit')){btn.disabled=false;btn.classList.remove('busy');btn.querySelector('span').textContent='Sign in'}}
+ };
 }
