@@ -43,10 +43,11 @@ export function createCloudSync({url, key: apikey, collections, fetchImpl = (...
   const meta = new Map();            // col|id -> {by, at} for 'last changed by'
   const remember = row => { known.set(key(row.collection, row.id), {version: Number(row.version), json: row.deleted ? null : JSON.stringify(row.data), deleted: !!row.deleted}); if (row.updated_at) meta.set(key(row.collection, row.id), {by: row.updated_by || null, at: row.updated_at}); if (row.updated_at && (!lastPull || row.updated_at > lastPull)) lastPull = row.updated_at };
 
-  async function fetchRows(filter) {
+  const FULL = 'collection,id,data,deleted,version,updated_at,updated_by', HEAD = 'collection,id,deleted,version,updated_at';
+  async function fetchRows(filter, select = FULL) {
     const rows = [];
     for (let offset = 0; ; offset += 1000) {
-      const batch = await call(`/rest/v1/workspace_docs?select=collection,id,data,deleted,version,updated_at,updated_by${filter}&order=updated_at.asc,collection.asc,id.asc&offset=${offset}&limit=1000`);
+      const batch = await call(`/rest/v1/workspace_docs?select=${select}${filter}&order=updated_at.asc,collection.asc,id.asc&offset=${offset}&limit=1000`);
       rows.push(...batch); if (batch.length < 1000) return rows;
     }
   }
@@ -79,7 +80,15 @@ export function createCloudSync({url, key: apikey, collections, fetchImpl = (...
     for (const c of collections) {
       const list = data[c] || [];
       for (const doc of list) put(c, doc.id, doc);
-      put(ORDER, c, {ids: list.map(d => d.id)});
+      // The saved order is only rewritten when other browsers could not work it out themselves: they already
+      // put records missing from the order first (newest first) and drop deleted ones. Saves egress.
+      const ids = list.map(d => d.id), prev = known.get(key(ORDER, c));
+      if (prev && !prev.deleted && prev.json) {
+        const was = JSON.parse(prev.json).ids || [], wasSet = new Set(was), here = new Set(ids);
+        const added = ids.filter(id => !wasSet.has(id)), tail = was.filter(id => here.has(id));
+        if (added.length <= 20 && ids.length === added.length + tail.length && ids.every((id, i) => i < added.length ? !wasSet.has(id) : id === tail[i - added.length])) { seen.add(key(ORDER, c)); continue }
+      }
+      put(ORDER, c, {ids});
     }
     if (company) put(SETTINGS, 'company', company);
     for (const [k, prev] of known) {
@@ -116,8 +125,14 @@ export function createCloudSync({url, key: apikey, collections, fetchImpl = (...
       if (!pull) return {data, company, changed: false, conflicts};
       // Pull everything changed since the last pull (with overlap for clock skew between transactions).
       const since = lastPull ? new Date(Date.parse(lastPull) - 10000).toISOString() : null;
-      const rows = await fetchRows(since ? `&updated_at=gte.${encodeURIComponent(since)}` : '');
+      // Pull in two steps: a tiny list of what changed (no record contents), then only the changed records.
+      const heads = await fetchRows(since ? `&updated_at=gte.${encodeURIComponent(since)}` : '', HEAD);
+      for (const h of heads) if (!lastPull || h.updated_at > lastPull) lastPull = h.updated_at;
       const lostKeys = new Set(lost.map(c => key(c.collection, c.id)));
+      const wanted = heads.filter(h => { const k = key(h.collection, h.id), prev = known.get(k); return lostKeys.has(k) || !prev || Number(h.version) > prev.version });
+      const rows = [];
+      if (wanted.length > 40) rows.push(...await fetchRows(`&updated_at=gte.${encodeURIComponent(wanted.reduce((m, h) => h.updated_at < m ? h.updated_at : m, wanted[0].updated_at))}`));
+      else if (wanted.length) { const q = v => '"' + String(v).replace(/[\\"]/g, m => '\\' + m) + '"'; rows.push(...await fetchRows(`&or=${encodeURIComponent('(' + wanted.map(h => `and(collection.eq.${q(h.collection)},id.eq.${q(h.id)})`).join(',') + ')')}`)) }
       // a refused change whose cloud copy is older than the pull window: fetch it directly
       for (const c of lost) if (!rows.some(r => r.collection === c.collection && r.id === c.id)) rows.push(...await fetchRows(`&collection=eq.${encodeURIComponent(c.collection)}&id=eq.${encodeURIComponent(c.id)}`));
       const fresh = rows.filter(r => { const k = key(r.collection, r.id), prev = known.get(k); return lostKeys.has(k) || !prev || Number(r.version) > prev.version });
