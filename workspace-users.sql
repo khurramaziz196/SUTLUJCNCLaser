@@ -132,3 +132,7 @@ grant execute on function public.current_workspace(), public.current_role_in_wor
 
 revoke execute on function public.current_workspace(), public.current_role_in_workspace(), public.workspace_me(), public.workspace_activity() from public, anon;
 grant execute on function public.current_workspace(), public.current_role_in_workspace(), public.workspace_me(), public.workspace_activity() to authenticated;
+
+-- The manage-users Edge Function uses the secret (service_role) key; some projects do not grant it table access by default.
+grant select, insert, update, delete on public.workspaces, public.workspace_members to service_role;
+grant select on public.workspace_docs to service_role;

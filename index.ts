@@ -29,7 +29,8 @@ Deno.serve(async (req) => {
   if (!token) return fail(401, 'Sign in first.');
   const { data: who, error: whoError } = await admin.auth.getUser(token);
   if (whoError || !who?.user) return fail(401, 'Your sign-in has expired. Sign in again.');
-  const { data: me } = await admin.from('workspace_members').select('*').eq('user_id', who.user.id).eq('active', true).maybeSingle();
+  const { data: me, error: meError } = await admin.from('workspace_members').select('*').eq('user_id', who.user.id).eq('active', true).maybeSingle();
+  if (meError) return fail(500, 'The server could not check your access (' + meError.message + '). Ask the developer to check the database permissions.');
   if (!me || me.role !== 'admin') return fail(403, 'Only an Admin can manage users.');
   const ws = me.workspace_id;
 
