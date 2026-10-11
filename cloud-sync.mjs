@@ -153,7 +153,7 @@ export function createCloudSync({url, key: apikey, collections, fetchImpl = (...
   return {
     get session() { return session },
     signIn: (email, password) => authRequest('password', {email, password}),
-    async signOut() { try { await call('/auth/v1/logout', {method: 'POST'}) } catch {} session = null; known.clear(); lastPull = null; onAuth(null) },
+    async signOut() { try { await call('/auth/v1/logout?scope=local', {method: 'POST'}) } catch {} session = null; known.clear(); lastPull = null; onAuth(null) },
     // Full load: the workspace as stored in the cloud, and whether the cloud is still empty.
     async load() { known.clear(); lastPull = null; const rows = await fetchRows(''); rows.forEach(remember); const live = rows.filter(r => !r.deleted); return {...assemble(rows), empty: !live.some(r => r.collection !== ORDER && r.collection !== SETTINGS), hasSettings: live.some(r => r.collection === SETTINGS)} },
     syncNow, pendingCount, diff,
